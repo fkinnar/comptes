@@ -31,6 +31,46 @@ func (s *JSONStorage) SaveAccounts(accounts []domain.Account) error {
 	return s.writeJSONFile("accounts.json", accounts)
 }
 
+// GetAccountBalance calculates the current balance for an account
+func (s *JSONStorage) GetAccountBalance(accountID string) (float64, error) {
+	// Get accounts to find initial balance
+	accounts, err := s.GetAccounts()
+	if err != nil {
+		return 0, err
+	}
+
+	// Find the account
+	var initialBalance float64
+	var accountFound bool
+	for _, acc := range accounts {
+		if acc.ID == accountID {
+			initialBalance = acc.InitialBalance
+			accountFound = true
+			break
+		}
+	}
+
+	if !accountFound {
+		return 0, fmt.Errorf("account not found: %s", accountID)
+	}
+
+	// Get transactions
+	transactions, err := s.GetTransactions()
+	if err != nil {
+		return 0, err
+	}
+
+	// Calculate balance
+	balance := initialBalance
+	for _, txn := range transactions {
+		if txn.AccountID == accountID && txn.IsActive {
+			balance += txn.Amount
+		}
+	}
+
+	return balance, nil
+}
+
 // GetTransactions reads transactions from JSON file
 func (s *JSONStorage) GetTransactions() ([]domain.Transaction, error) {
 	var transactions []domain.Transaction
@@ -104,4 +144,3 @@ func (s *JSONStorage) writeJSONFile(filename string, v interface{}) error {
 
 	return nil
 }
-

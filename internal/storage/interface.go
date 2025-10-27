@@ -9,6 +9,7 @@ type Storage interface {
 	// Accounts
 	GetAccounts() ([]domain.Account, error)
 	SaveAccounts(accounts []domain.Account) error
+	GetAccountBalance(accountID string) (float64, error) // ← Nouveau !
 
 	// Transactions
 	GetTransactions() ([]domain.Transaction, error)
@@ -22,4 +23,3 @@ type Storage interface {
 	GetTags() ([]domain.Tag, error)
 	SaveTags(tags []domain.Tag) error
 }
-

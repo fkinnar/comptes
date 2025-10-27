@@ -49,41 +49,27 @@ func (s *TransactionService) GetTransactions() ([]domain.Transaction, error) {
 
 // GetAccountBalance calculates the current balance for an account
 func (s *TransactionService) GetAccountBalance(accountID string) (float64, error) {
-	// Get account
+	// Verify account exists
 	accounts, err := s.storage.GetAccounts()
 	if err != nil {
 		return 0, fmt.Errorf("failed to get accounts: %w", err)
 	}
 
-	var account *domain.Account
+	// Find the account
+	var accountFound bool
 	for _, acc := range accounts {
 		if acc.ID == accountID {
-			account = &acc
+			accountFound = true
 			break
 		}
 	}
 
-	if account == nil {
+	if !accountFound {
 		return 0, fmt.Errorf("account not found: %s", accountID)
 	}
 
-	// Start with initial balance
-	balance := account.InitialBalance
-
-	// Get transactions for this account
-	transactions, err := s.storage.GetTransactions()
-	if err != nil {
-		return 0, fmt.Errorf("failed to get transactions: %w", err)
-	}
-
-	// Add all active transactions
-	for _, transaction := range transactions {
-		if transaction.AccountID == accountID && transaction.IsActive {
-			balance += transaction.Amount
-		}
-	}
-
-	return balance, nil
+	// Delegate balance calculation to storage
+	return s.storage.GetAccountBalance(accountID)
 }
 
 // validateTransaction validates a transaction

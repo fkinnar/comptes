@@ -2,6 +2,7 @@ package service
 
 import (
 	"comptes/internal/domain"
+	"fmt"
 	"testing"
 	"time"
 )
@@ -50,6 +51,33 @@ func (m *MockStorage) SaveTags(tags []domain.Tag) error {
 	return nil
 }
 
+func (m *MockStorage) GetAccountBalance(accountID string) (float64, error) {
+	// Find the account
+	var initialBalance float64
+	var accountFound bool
+	for _, acc := range m.accounts {
+		if acc.ID == accountID {
+			initialBalance = acc.InitialBalance
+			accountFound = true
+			break
+		}
+	}
+
+	if !accountFound {
+		return 0, fmt.Errorf("account not found: %s", accountID)
+	}
+
+	// Calculate balance
+	balance := initialBalance
+	for _, txn := range m.transactions {
+		if txn.AccountID == accountID && txn.IsActive {
+			balance += txn.Amount
+		}
+	}
+
+	return balance, nil
+}
+
 func TestTransactionService_AddTransaction(t *testing.T) {
 	// Setup
 	mockStorage := &MockStorage{
@@ -80,9 +108,9 @@ func TestTransactionService_AddTransaction(t *testing.T) {
 			},
 		},
 	}
-	
+
 	service := NewTransactionService(mockStorage)
-	
+
 	// Test adding a valid transaction
 	transaction := domain.Transaction{
 		ID:          "txn1",
@@ -95,18 +123,18 @@ func TestTransactionService_AddTransaction(t *testing.T) {
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}
-	
+
 	err := service.AddTransaction(transaction)
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
-	
+
 	// Verify transaction was saved
 	transactions, _ := mockStorage.GetTransactions()
 	if len(transactions) != 1 {
 		t.Errorf("Expected 1 transaction, got %d", len(transactions))
 	}
-	
+
 	if transactions[0].ID != "txn1" {
 		t.Errorf("Expected transaction ID 'txn1', got '%s'", transactions[0].ID)
 	}
@@ -158,15 +186,15 @@ func TestTransactionService_GetAccountBalance(t *testing.T) {
 		categories: []domain.Category{},
 		tags:       []domain.Tag{},
 	}
-	
+
 	service := NewTransactionService(mockStorage)
-	
+
 	// Test balance calculation
 	balance, err := service.GetAccountBalance("account1")
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
-	
+
 	// Expected balance: 1000 (initial) + 100 (income) - 50 (expense) = 1050
 	// Inactive transaction (-25) should not be counted
 	expectedBalance := 1050.0
@@ -183,9 +211,9 @@ func TestTransactionService_GetAccountBalance_NonExistentAccount(t *testing.T) {
 		categories:   []domain.Category{},
 		tags:         []domain.Tag{},
 	}
-	
+
 	service := NewTransactionService(mockStorage)
-	
+
 	// Test non-existent account
 	_, err := service.GetAccountBalance("nonexistent")
 	if err == nil {
@@ -201,9 +229,9 @@ func TestTransactionService_AddTransaction_NonExistentAccount(t *testing.T) {
 		categories:   []domain.Category{},
 		tags:         []domain.Tag{},
 	}
-	
+
 	service := NewTransactionService(mockStorage)
-	
+
 	// Test adding transaction to non-existent account
 	transaction := domain.Transaction{
 		ID:          "txn1",
@@ -214,7 +242,7 @@ func TestTransactionService_AddTransaction_NonExistentAccount(t *testing.T) {
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}
-	
+
 	err := service.AddTransaction(transaction)
 	if err == nil {
 		t.Error("Expected error for non-existent account, got nil")

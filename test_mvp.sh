@@ -65,7 +65,14 @@ check_output() {
 
 # Nettoyage initial
 echo "🧹 Nettoyage initial..."
-rm -rf data/ config/ 2>/dev/null || true
+rm -rf test-data/ test-config/ 2>/dev/null || true
+
+# Créer les dossiers de test
+mkdir -p test-data test-config
+
+# Variables d'environnement pour les tests
+export COMPTES_DATA_DIR="test-data"
+export COMPTES_CONFIG_DIR="test-config"
 
 # Compilation
 echo "🔨 Compilation..."
@@ -80,7 +87,7 @@ run_test "Initialisation propre" "./comptes init" 0
 run_test "Réinitialisation" "./comptes init" 0
 
 # Vérifier que les fichiers sont créés
-if [ ! -f "config/config.yaml" ] || [ ! -f "data/transactions.json" ]; then
+if [ ! -f "test-config/config.yaml" ] || [ ! -f "test-data/transactions.json" ]; then
     echo -e "${RED}❌ Fichiers de configuration non créés${NC}"
     exit 1
 fi

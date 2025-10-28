@@ -100,6 +100,12 @@ func SaveConfig(configPath string, cfg *Config) error {
 
 // GetConfigPath returns the path to the config file
 func GetConfigPath() string {
-	execPath, _ := os.Executable()
-	return filepath.Join(filepath.Dir(execPath), "config", "config.yaml")
+	// Use environment variable for tests, or default to config/
+	configDir := os.Getenv("COMPTES_CONFIG_DIR")
+	if configDir == "" {
+		// Default behavior: next to executable
+		execPath, _ := os.Executable()
+		configDir = filepath.Join(filepath.Dir(execPath), "config")
+	}
+	return filepath.Join(configDir, "config.yaml")
 }

@@ -16,12 +16,16 @@ type CLI struct {
 
 // NewCLI creates a new CLI instance
 func NewCLI() (*CLI, error) {
-	// Get data directory (next to executable for MVP)
-	execPath, err := os.Executable()
-	if err != nil {
-		return nil, errors.Wrap(errors.ErrorTypeSystem, "exec_path_failed", "Failed to get executable path", err)
+	// Get data directory (use environment variable for tests, or default to data/)
+	dataDir := os.Getenv("COMPTES_DATA_DIR")
+	if dataDir == "" {
+		// Default behavior: next to executable for MVP
+		execPath, err := os.Executable()
+		if err != nil {
+			return nil, errors.Wrap(errors.ErrorTypeSystem, "exec_path_failed", "Failed to get executable path", err)
+		}
+		dataDir = filepath.Join(filepath.Dir(execPath), "data")
 	}
-	dataDir := filepath.Join(filepath.Dir(execPath), "data")
 
 	// Create data directory if it doesn't exist
 	if err := os.MkdirAll(dataDir, 0755); err != nil {

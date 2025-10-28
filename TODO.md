@@ -55,12 +55,16 @@
 ## 🎯 Prochaines étapes (post-MVP) - Priorités définies
 
 ### 🚀 Priorité 1 : Ergonomie quotidienne (CRUCIAL)
-1. **Mode transactionnel avec contexte** - Réduit drastiquement la verbosité
+1. **Mode transactionnel avec contexte + Flags pour add** - Réduit drastiquement la verbosité
    ```bash
+   # Mode transactionnel
    comptes account BANQUE
    comptes category ALM
    comptes add '{"amount": -25.50, "description": "Courses"}'
    comptes commit
+   
+   # Ou avec flags directement
+   ./comptes add -a -25.50 -d "Courses" -c ALM -t URG
    ```
 2. **Support multi-comptes avec transferts** - Gestion réaliste des finances
    ```bash
@@ -94,20 +98,25 @@
 ## 🔧 Améliorations UX immédiates (à implémenter rapidement)
 
 ### 📝 Interface utilisateur améliorée
-- **Flags pour add** : `--amount (-a)`, `--description (-d)`, `--categories (-c)`, `--tags (-t)`, `--date`
-  ```bash
-  ./comptes add -a -25.50 -d "Courses" -c ALM -t URG
-  ```
-- **Aide contextuelle** : `--categories (-c)` et `--tags (-t)` sur `list` pour voir les options
+- ✅ **Aide contextuelle** : `--categories (-c)` et `--tags (-t)` sur `list` pour voir les options
   ```bash
   ./comptes list --categories  # Affiche toutes les catégories disponibles
   ./comptes list --tags        # Affiche tous les tags disponibles
   ```
-- **Affichage amélioré** : Noms complets des catégories/tags au lieu des codes
+- ✅ **Affichage amélioré** : Noms complets des catégories/tags au lieu des codes
   ```bash
   ./comptes list  # Affiche "Alimentation" au lieu de "ALM"
   ./comptes list --codes  # Flag pour garder les codes si besoin
   ```
+- ✅ **Support des formats CSV/JSON** : Pour catégories, tags et transactions
+  ```bash
+  ./comptes list --categories --format csv  # Export CSV des catégories
+  ./comptes list --tags --format json        # Export JSON des tags
+  ./comptes list --transactions --format csv # Export CSV des transactions
+  ```
+- ✅ **Architecture cohérente** : Flag `--transactions` par défaut pour clarté
+- ✅ **CSV compatible Nushell** : Échappement correct des virgules dans les descriptions
+- **Flags pour add** : `--amount (-a)`, `--description (-d)`, `--categories (-c)`, `--tags (-t)`, `--date` (implémenté avec le mode transactionnel)
 
 ### 🗑️ Opérations avancées
 - **Suppression définitive** : `--hard` pour `delete`, `edit`, `undo`
@@ -236,6 +245,12 @@
 ./comptes list --format json
 ./comptes list --history --format csv
 
+# Nouvelles fonctionnalités d'aide contextuelle
+./comptes list --categories              # Affiche les catégories disponibles
+./comptes list --categories --format csv # Export CSV des catégories
+./comptes list --tags --format json     # Export JSON des tags
+./comptes list --codes                  # Affiche les codes au lieu des noms
+
 # Édition avec message obligatoire
 ./comptes edit <id> '{"amount": -30.00}' -m "Correction montant"
 ./comptes edit <id> '{"description": "Nouvelle description"}' --message "Fix typo"
@@ -260,6 +275,10 @@
 4. **Undo** : Tester undo add, undo edit, undo delete
 5. **Historique** : Vérifier que `--history` montre les commentaires
 6. **Formats** : Vérifier CSV pour Nushell, JSON pour scripting
+7. **Aide contextuelle** : Tester `--categories` et `--tags` avec différents formats
+8. **Affichage amélioré** : Vérifier noms complets vs codes avec `--codes`
+9. **CSV Nushell** : Tester `./comptes list --categories --format csv | from csv`
+10. **Architecture cohérente** : Vérifier que `--transactions` fonctionne comme par défaut
 
 ---
 
@@ -278,4 +297,4 @@
 
 ---
 
-*Dernière mise à jour : 28 octobre 2025*
+*Dernière mise à jour : 28 octobre 2025 - Nouvelles fonctionnalités UX implémentées*

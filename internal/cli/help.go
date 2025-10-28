@@ -23,6 +23,26 @@ Example: comptes add '{"account":"BANQUE","amount":-25.50,"description":"Achat",
 
 Date formats in JSON: 2024-01-15, 15/01/2024, yesterday, today, tomorrow`
 
+	HelpList = `Usage: comptes list [options]
+
+Options:
+  --transactions     List transactions (default)
+  --categories, -c   Show available categories
+  --tags, -t         Show available tags
+  --history, -h      Show all transactions (including deleted/edited)
+  --format <fmt>     Output format: text (default), csv, json
+  --codes            Show category/tag codes instead of names
+
+Examples:
+  comptes list                           # Show active transactions with full names
+  comptes list --transactions --format csv  # Export transactions as CSV
+  comptes list --categories              # Show available categories
+  comptes list --categories --format csv # Export categories as CSV
+  comptes list --categories --format json # Export categories as JSON
+  comptes list --tags --format json      # Export tags as JSON
+  comptes list --history                 # Show all transactions
+  comptes list --codes                   # Show codes instead of names`
+
 	HelpEdit = `Usage: comptes edit <id> <json> -m <message>
 
 Example: comptes edit fd6647d8 '{"amount": -30.00}' -m "Correction montant"
@@ -50,6 +70,8 @@ func ShowHelp(command string) {
 	switch command {
 	case "add":
 		fmt.Println(HelpAdd)
+	case "list":
+		fmt.Println(HelpList)
 	case "edit":
 		fmt.Println(HelpEdit)
 	case "delete":

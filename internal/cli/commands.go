@@ -69,6 +69,7 @@ func (c *CLI) Execute(args []string) error {
 	case "migrate":
 		return c.handleMigrate()
 	default:
+		ShowHelp("")
 		return errors.InvalidCommand(command)
 	}
 }

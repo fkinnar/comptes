@@ -17,6 +17,32 @@ type Config struct {
 	Tags       []domain.Tag      `yaml:"tags"`
 }
 
+// CreateDefaultConfig creates a default configuration
+func CreateDefaultConfig() *Config {
+	return &Config{
+		Accounts: []domain.Account{
+			{
+				ID:             "BANQUE",
+				Name:           "Compte Courant Principal",
+				Type:           "checking",
+				Currency:       "EUR",
+				InitialBalance: 1500.00,
+				IsActive:       true,
+				CreatedAt:      time.Now(),
+			},
+		},
+		Categories: []domain.Category{
+			{Code: "ALM", Name: "Alimentation", Description: "Courses et repas"},
+			{Code: "SLR", Name: "Salaire", Description: "Revenus professionnels"},
+			{Code: "LGT", Name: "Logement", Description: "Loyer, charges, etc."},
+		},
+		Tags: []domain.Tag{
+			{Code: "URG", Name: "Urgent", Description: "Transaction urgente"},
+			{Code: "REC", Name: "Récurrent", Description: "Transaction récurrente"},
+		},
+	}
+}
+
 // LoadConfig loads configuration from YAML file
 func LoadConfig(configPath string) (*Config, error) {
 	// Check if config file exists
@@ -50,6 +76,26 @@ func LoadConfig(configPath string) (*Config, error) {
 	}
 
 	return &config, nil
+}
+
+// SaveConfig saves configuration to YAML file
+func SaveConfig(configPath string, cfg *Config) error {
+	// Create directory if it doesn't exist
+	dir := filepath.Dir(configPath)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Errorf("failed to create config directory: %w", err)
+	}
+
+	data, err := yaml.Marshal(cfg)
+	if err != nil {
+		return fmt.Errorf("failed to marshal config: %w", err)
+	}
+
+	if err := os.WriteFile(configPath, data, 0644); err != nil {
+		return fmt.Errorf("failed to write config file: %w", err)
+	}
+
+	return nil
 }
 
 // GetConfigPath returns the path to the config file

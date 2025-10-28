@@ -3,6 +3,7 @@ package service
 import (
 	"comptes/internal/domain"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 )
@@ -246,5 +247,546 @@ func TestTransactionService_AddTransaction_NonExistentAccount(t *testing.T) {
 	err := service.AddTransaction(transaction)
 	if err == nil {
 		t.Error("Expected error for non-existent account, got nil")
+	}
+}
+
+func TestTransactionService_EditTransaction(t *testing.T) {
+	// Setup
+	now := time.Now()
+	mockStorage := &MockStorage{
+		transactions: []domain.Transaction{
+			{
+				ID:          "txn1",
+				Account:     "account1",
+				Amount:      -50.0,
+				Description: "Original purchase",
+				Categories:  []string{"food"},
+				Tags:        []string{"test"},
+				IsActive:    true,
+				CreatedAt:   now,
+				UpdatedAt:   now,
+			},
+		},
+		accounts: []domain.Account{
+			{
+				ID:             "account1",
+				Name:           "Test Account",
+				Type:           "checking",
+				Currency:       "EUR",
+				InitialBalance: 1000.0,
+				IsActive:       true,
+				CreatedAt:      now,
+			},
+		},
+		categories: []domain.Category{
+			{
+				Code:        "food",
+				Name:        "Food",
+				Description: "Food expenses",
+			},
+		},
+		tags: []domain.Tag{
+			{
+				Code:        "test",
+				Name:        "Test",
+				Description: "Test tag",
+			},
+		},
+	}
+
+	service := NewTransactionService(mockStorage)
+
+	// Test editing a transaction
+	modifications := domain.Transaction{
+		ID:          "txn2",             // New ID
+		Amount:      -75.0,              // Changed amount
+		Description: "Updated purchase", // Changed description
+	}
+
+	newTransaction, err := service.EditTransaction("txn1", modifications, "Price correction")
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+
+	// Verify new transaction was created
+	if newTransaction.ID != "txn2" {
+		t.Errorf("Expected new transaction ID 'txn2', got '%s'", newTransaction.ID)
+	}
+
+	if newTransaction.Amount != -75.0 {
+		t.Errorf("Expected amount -75.0, got %.2f", newTransaction.Amount)
+	}
+
+	if newTransaction.Description != "Updated purchase" {
+		t.Errorf("Expected description 'Updated purchase', got '%s'", newTransaction.Description)
+	}
+
+	if newTransaction.ParentID != "txn1" {
+		t.Errorf("Expected parent ID 'txn1', got '%s'", newTransaction.ParentID)
+	}
+
+	// Verify old transaction was soft-deleted
+	transactions, _ := mockStorage.GetTransactions()
+	if len(transactions) != 2 {
+		t.Errorf("Expected 2 transactions, got %d", len(transactions))
+	}
+
+	// Find the old transaction
+	var oldTransaction *domain.Transaction
+	for _, txn := range transactions {
+		if txn.ID == "txn1" {
+			oldTransaction = &txn
+			break
+		}
+	}
+
+	if oldTransaction == nil {
+		t.Error("Old transaction not found")
+	} else {
+		if oldTransaction.IsActive {
+			t.Error("Expected old transaction to be inactive")
+		}
+		if oldTransaction.EditComment != "Price correction" {
+			t.Errorf("Expected edit comment 'Price correction', got '%s'", oldTransaction.EditComment)
+		}
+	}
+}
+
+func TestTransactionService_DeleteTransaction(t *testing.T) {
+	// Setup
+	now := time.Now()
+	mockStorage := &MockStorage{
+		transactions: []domain.Transaction{
+			{
+				ID:          "txn1",
+				Account:     "account1",
+				Amount:      -50.0,
+				Description: "Test purchase",
+				IsActive:    true,
+				CreatedAt:   now,
+				UpdatedAt:   now,
+			},
+		},
+		accounts: []domain.Account{
+			{
+				ID:             "account1",
+				Name:           "Test Account",
+				Type:           "checking",
+				Currency:       "EUR",
+				InitialBalance: 1000.0,
+				IsActive:       true,
+				CreatedAt:      now,
+			},
+		},
+		categories: []domain.Category{},
+		tags:       []domain.Tag{},
+	}
+
+	service := NewTransactionService(mockStorage)
+
+	// Test deleting a transaction
+	err := service.DeleteTransaction("txn1", "Mistake")
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+
+	// Verify transaction was soft-deleted
+	transactions, _ := mockStorage.GetTransactions()
+	if len(transactions) != 1 {
+		t.Errorf("Expected 1 transaction, got %d", len(transactions))
+	}
+
+	txn := transactions[0]
+	if txn.IsActive {
+		t.Error("Expected transaction to be inactive")
+	}
+	if txn.EditComment != "Mistake" {
+		t.Errorf("Expected edit comment 'Mistake', got '%s'", txn.EditComment)
+	}
+}
+
+func TestTransactionService_DeleteTransaction_AlreadyDeleted(t *testing.T) {
+	// Setup
+	now := time.Now()
+	mockStorage := &MockStorage{
+		transactions: []domain.Transaction{
+			{
+				ID:          "txn1",
+				Account:     "account1",
+				Amount:      -50.0,
+				Description: "Test purchase",
+				IsActive:    false, // Already deleted
+				CreatedAt:   now,
+				UpdatedAt:   now,
+			},
+		},
+		accounts: []domain.Account{
+			{
+				ID:             "account1",
+				Name:           "Test Account",
+				Type:           "checking",
+				Currency:       "EUR",
+				InitialBalance: 1000.0,
+				IsActive:       true,
+				CreatedAt:      now,
+			},
+		},
+		categories: []domain.Category{},
+		tags:       []domain.Tag{},
+	}
+
+	service := NewTransactionService(mockStorage)
+
+	// Test deleting an already deleted transaction
+	err := service.DeleteTransaction("txn1", "Mistake")
+	if err == nil {
+		t.Error("Expected error for already deleted transaction, got nil")
+	}
+}
+
+func TestTransactionService_UndoTransaction_UndoAdd(t *testing.T) {
+	// Setup
+	now := time.Now()
+	mockStorage := &MockStorage{
+		transactions: []domain.Transaction{
+			{
+				ID:          "txn1",
+				Account:     "account1",
+				Amount:      -50.0,
+				Description: "Test purchase",
+				IsActive:    true,
+				EditComment: "", // No edit comment = added transaction
+				CreatedAt:   now,
+				UpdatedAt:   now,
+			},
+		},
+		accounts: []domain.Account{
+			{
+				ID:             "account1",
+				Name:           "Test Account",
+				Type:           "checking",
+				Currency:       "EUR",
+				InitialBalance: 1000.0,
+				IsActive:       true,
+				CreatedAt:      now,
+			},
+		},
+		categories: []domain.Category{},
+		tags:       []domain.Tag{},
+	}
+
+	service := NewTransactionService(mockStorage)
+
+	// Test undoing an add operation
+	err := service.UndoTransaction("txn1")
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+
+	// Verify transaction was soft-deleted
+	transactions, _ := mockStorage.GetTransactions()
+	if len(transactions) != 1 {
+		t.Errorf("Expected 1 transaction, got %d", len(transactions))
+	}
+
+	txn := transactions[0]
+	if txn.IsActive {
+		t.Error("Expected transaction to be inactive")
+	}
+	if txn.EditComment != "Undo add operation" {
+		t.Errorf("Expected edit comment 'Undo add operation', got '%s'", txn.EditComment)
+	}
+}
+
+func TestTransactionService_UndoTransaction_UndoDelete(t *testing.T) {
+	// Setup
+	now := time.Now()
+	mockStorage := &MockStorage{
+		transactions: []domain.Transaction{
+			{
+				ID:          "txn1",
+				Account:     "account1",
+				Amount:      -50.0,
+				Description: "Test purchase",
+				IsActive:    false, // Deleted transaction
+				EditComment: "Mistake",
+				CreatedAt:   now,
+				UpdatedAt:   now,
+			},
+		},
+		accounts: []domain.Account{
+			{
+				ID:             "account1",
+				Name:           "Test Account",
+				Type:           "checking",
+				Currency:       "EUR",
+				InitialBalance: 1000.0,
+				IsActive:       true,
+				CreatedAt:      now,
+			},
+		},
+		categories: []domain.Category{},
+		tags:       []domain.Tag{},
+	}
+
+	service := NewTransactionService(mockStorage)
+
+	// Test undoing a delete operation
+	err := service.UndoTransaction("txn1")
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+
+	// Verify transaction was restored
+	transactions, _ := mockStorage.GetTransactions()
+	if len(transactions) != 1 {
+		t.Errorf("Expected 1 transaction, got %d", len(transactions))
+	}
+
+	txn := transactions[0]
+	if !txn.IsActive {
+		t.Error("Expected transaction to be active")
+	}
+	if txn.EditComment != "" {
+		t.Errorf("Expected empty edit comment, got '%s'", txn.EditComment)
+	}
+}
+
+func TestTransactionService_UndoTransaction_UndoEdit(t *testing.T) {
+	// Setup
+	now := time.Now()
+	mockStorage := &MockStorage{
+		transactions: []domain.Transaction{
+			{
+				ID:          "txn1",
+				Account:     "account1",
+				Amount:      -50.0,
+				Description: "Original purchase",
+				IsActive:    false, // Parent transaction (soft-deleted)
+				EditComment: "Price correction",
+				CreatedAt:   now,
+				UpdatedAt:   now,
+			},
+			{
+				ID:          "txn2",
+				Account:     "account1",
+				Amount:      -75.0,
+				Description: "Updated purchase",
+				IsActive:    true,
+				ParentID:    "txn1", // Child transaction
+				CreatedAt:   now,
+				UpdatedAt:   now,
+			},
+		},
+		accounts: []domain.Account{
+			{
+				ID:             "account1",
+				Name:           "Test Account",
+				Type:           "checking",
+				Currency:       "EUR",
+				InitialBalance: 1000.0,
+				IsActive:       true,
+				CreatedAt:      now,
+			},
+		},
+		categories: []domain.Category{},
+		tags:       []domain.Tag{},
+	}
+
+	service := NewTransactionService(mockStorage)
+
+	// Test undoing an edit operation
+	err := service.UndoTransaction("txn2")
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+
+	// Verify parent was restored and child was removed
+	transactions, _ := mockStorage.GetTransactions()
+	if len(transactions) != 1 {
+		t.Errorf("Expected 1 transaction, got %d", len(transactions))
+	}
+
+	txn := transactions[0]
+	if txn.ID != "txn1" {
+		t.Errorf("Expected transaction ID 'txn1', got '%s'", txn.ID)
+	}
+	if !txn.IsActive {
+		t.Error("Expected transaction to be active")
+	}
+	if txn.EditComment != "" {
+		t.Errorf("Expected empty edit comment, got '%s'", txn.EditComment)
+	}
+}
+
+func TestTransactionService_MigrateTransactionIDs(t *testing.T) {
+	// Setup
+	now := time.Now()
+	mockStorage := &MockStorage{
+		transactions: []domain.Transaction{
+			{
+				ID:          "txn_old1",
+				Account:     "account1",
+				Amount:      -50.0,
+				Description: "Old transaction",
+				IsActive:    true,
+				CreatedAt:   now,
+				UpdatedAt:   now,
+			},
+			{
+				ID:          "new123",
+				Account:     "account1",
+				Amount:      -25.0,
+				Description: "New transaction",
+				IsActive:    true,
+				CreatedAt:   now,
+				UpdatedAt:   now,
+			},
+		},
+		accounts: []domain.Account{
+			{
+				ID:             "account1",
+				Name:           "Test Account",
+				Type:           "checking",
+				Currency:       "EUR",
+				InitialBalance: 1000.0,
+				IsActive:       true,
+				CreatedAt:      now,
+			},
+		},
+		categories: []domain.Category{},
+		tags:       []domain.Tag{},
+	}
+
+	service := NewTransactionService(mockStorage)
+
+	// Mock ID generator - generate UUIDs for migration
+	idCounter := 0
+	generateID := func() string {
+		idCounter++
+		return fmt.Sprintf("new-uuid-%d", idCounter)
+	}
+
+	// Test migrating transaction IDs
+	err := service.MigrateTransactionIDs(generateID)
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+
+	// Verify only old IDs were migrated
+	transactions, _ := mockStorage.GetTransactions()
+	if len(transactions) != 2 {
+		t.Errorf("Expected 2 transactions, got %d", len(transactions))
+	}
+
+	// Find the migrated transaction
+	var migratedTransaction *domain.Transaction
+	for _, txn := range transactions {
+		if txn.Description == "Old transaction" {
+			migratedTransaction = &txn
+			break
+		}
+	}
+
+	if migratedTransaction == nil {
+		t.Error("Migrated transaction not found")
+	} else {
+		if migratedTransaction.ID == "txn_old1" {
+			t.Error("Expected transaction ID to be migrated, but it's still 'txn_old1'")
+		}
+		if !strings.HasPrefix(migratedTransaction.ID, "new-uuid-") {
+			t.Errorf("Expected migrated ID to start with 'new-uuid-', got '%s'", migratedTransaction.ID)
+		}
+	}
+
+	// Verify new transaction was migrated (since it's not 11 characters)
+	var newTransaction *domain.Transaction
+	for _, txn := range transactions {
+		if txn.Description == "New transaction" {
+			newTransaction = &txn
+			break
+		}
+	}
+
+	if newTransaction == nil {
+		t.Error("New transaction not found")
+	} else {
+		// The new transaction should have been migrated since "new123" is not 11 characters
+		if !strings.HasPrefix(newTransaction.ID, "new-uuid-") {
+			t.Errorf("Expected new transaction ID to start with 'new-uuid-', got '%s'", newTransaction.ID)
+		}
+	}
+}
+
+func TestTransactionService_findTransactionByID(t *testing.T) {
+	// Setup
+	now := time.Now()
+	mockStorage := &MockStorage{
+		transactions: []domain.Transaction{
+			{
+				ID:          "abc12345",
+				Account:     "account1",
+				Amount:      -50.0,
+				Description: "Transaction 1",
+				IsActive:    true,
+				CreatedAt:   now,
+				UpdatedAt:   now,
+			},
+			{
+				ID:          "abdef67890",
+				Account:     "account1",
+				Amount:      -25.0,
+				Description: "Transaction 2",
+				IsActive:    true,
+				CreatedAt:   now,
+				UpdatedAt:   now,
+			},
+		},
+		accounts: []domain.Account{
+			{
+				ID:             "account1",
+				Name:           "Test Account",
+				Type:           "checking",
+				Currency:       "EUR",
+				InitialBalance: 1000.0,
+				IsActive:       true,
+				CreatedAt:      now,
+			},
+		},
+		categories: []domain.Category{},
+		tags:       []domain.Tag{},
+	}
+
+	service := NewTransactionService(mockStorage)
+
+	// Test finding transaction by full ID
+	transactions, _ := mockStorage.GetTransactions()
+	txn, err := service.findTransactionByID(transactions, "abc12345")
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+	if txn.ID != "abc12345" {
+		t.Errorf("Expected transaction ID 'abc12345', got '%s'", txn.ID)
+	}
+
+	// Test finding transaction by partial ID
+	txn, err = service.findTransactionByID(transactions, "abc")
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+	if txn.ID != "abc12345" {
+		t.Errorf("Expected transaction ID 'abc12345', got '%s'", txn.ID)
+	}
+
+	// Test finding non-existent transaction
+	_, err = service.findTransactionByID(transactions, "xyz")
+	if err == nil {
+		t.Error("Expected error for non-existent transaction, got nil")
+	}
+
+	// Test ambiguous partial ID
+	_, err = service.findTransactionByID(transactions, "ab")
+	if err == nil {
+		t.Error("Expected error for ambiguous partial ID, got nil")
 	}
 }

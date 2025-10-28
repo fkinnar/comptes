@@ -18,7 +18,7 @@ type Account struct {
 // Transaction represents a financial transaction
 type Transaction struct {
 	ID          string    `json:"id"`
-	AccountID   string    `json:"account_id"`
+	Account     string    `json:"account"`
 	Date        time.Time `json:"date"`
 	Amount      float64   `json:"amount"`
 	Description string    `json:"description"`

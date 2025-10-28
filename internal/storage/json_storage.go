@@ -63,7 +63,7 @@ func (s *JSONStorage) GetAccountBalance(accountID string) (float64, error) {
 	// Calculate balance
 	balance := initialBalance
 	for _, txn := range transactions {
-		if txn.AccountID == accountID && txn.IsActive {
+		if txn.Account == accountID && txn.IsActive {
 			balance += txn.Amount
 		}
 	}

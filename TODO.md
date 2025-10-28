@@ -53,12 +53,39 @@
 
 ---
 
+## 🚀 Fonctionnalités avancées (post-MVP)
+
+### 🔄 Go routines & asynchrone
+- **Analytics** : Calculs en parallèle sur plusieurs comptes
+- **Import/Export** : Traitement de gros fichiers CSV/JSON
+- **Validation** : Vérification des catégories/tags en parallèle
+- **Cache** : Mise à jour asynchrone des soldes
+
+### 🎭 Mode transactionnel avec contexte
+- **Contexte partagé** : `comptes account BANQUE` → `comptes category ALM`
+- **Transaction atomique** : `comptes commit` (tout ou rien)
+- **Moins verbeux** : Plus besoin de JSON pour chaque transaction
+- **Validation groupée** : Vérification à la fin
+
+### 📅 Gestion des dates
+- **Flag --date** : `--date 2024-01-15` ou `-d 2024-01-15`
+- **Formats flexibles** : `2024-01-15`, `15/01/2024`, `yesterday`, `last week`
+- **Validation** : Dates cohérentes et réalistes
+
+### 🧮 Calculs dans les requêtes
+- **Expressions** : `{45.00 - 12.00}` pour les calculs
+- **Références** : Montants dynamiques entre transactions
+- **Validation** : Vérification des calculs et références
+
+---
+
 ## 📝 Notes
 
 - **Architecture solide** : Base extensible prête pour l'évolution
 - **Tests complets** : Couverture Service, Config, Storage
 - **Infrastructure** : GitHub + pre-commit hooks
 - **Documentation** : README, SETUP, architecture détaillée
+- **Vision produit** : Fonctionnalités avancées identifiées pour l'évolution
 
 ---
 

@@ -82,14 +82,14 @@ func (s *TransactionService) validateTransaction(transaction domain.Transaction)
 
 	accountExists := false
 	for _, account := range accounts {
-		if account.ID == transaction.AccountID {
+		if account.ID == transaction.Account {
 			accountExists = true
 			break
 		}
 	}
 
 	if !accountExists {
-		return fmt.Errorf("account not found: %s", transaction.AccountID)
+		return fmt.Errorf("account not found: %s", transaction.Account)
 	}
 
 	// Check if categories exist

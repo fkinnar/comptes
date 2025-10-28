@@ -70,7 +70,7 @@ func (m *MockStorage) GetAccountBalance(accountID string) (float64, error) {
 	// Calculate balance
 	balance := initialBalance
 	for _, txn := range m.transactions {
-		if txn.AccountID == accountID && txn.IsActive {
+		if txn.Account == accountID && txn.IsActive {
 			balance += txn.Amount
 		}
 	}
@@ -114,7 +114,7 @@ func TestTransactionService_AddTransaction(t *testing.T) {
 	// Test adding a valid transaction
 	transaction := domain.Transaction{
 		ID:          "txn1",
-		AccountID:   "account1",
+		Account:     "account1",
 		Amount:      -50.0,
 		Description: "Test purchase",
 		Categories:  []string{"food"},
@@ -146,7 +146,7 @@ func TestTransactionService_GetAccountBalance(t *testing.T) {
 		transactions: []domain.Transaction{
 			{
 				ID:          "txn1",
-				AccountID:   "account1",
+				Account:     "account1",
 				Amount:      -50.0,
 				Description: "Purchase",
 				IsActive:    true,
@@ -155,7 +155,7 @@ func TestTransactionService_GetAccountBalance(t *testing.T) {
 			},
 			{
 				ID:          "txn2",
-				AccountID:   "account1",
+				Account:     "account1",
 				Amount:      100.0,
 				Description: "Income",
 				IsActive:    true,
@@ -164,7 +164,7 @@ func TestTransactionService_GetAccountBalance(t *testing.T) {
 			},
 			{
 				ID:          "txn3",
-				AccountID:   "account1",
+				Account:     "account1",
 				Amount:      -25.0,
 				Description: "Inactive transaction",
 				IsActive:    false, // This should not be counted
@@ -235,7 +235,7 @@ func TestTransactionService_AddTransaction_NonExistentAccount(t *testing.T) {
 	// Test adding transaction to non-existent account
 	transaction := domain.Transaction{
 		ID:          "txn1",
-		AccountID:   "nonexistent",
+		Account:     "nonexistent",
 		Amount:      -50.0,
 		Description: "Test purchase",
 		IsActive:    true,

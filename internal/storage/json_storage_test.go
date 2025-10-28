@@ -17,7 +17,7 @@ func TestJSONStorage_SaveAndLoadTransactions(t *testing.T) {
 	transactions := []domain.Transaction{
 		{
 			ID:          "txn1",
-			AccountID:   "account1",
+			Account:     "account1",
 			Amount:      -50.0,
 			Description: "Test purchase",
 			Categories:  []string{"food"},
@@ -28,7 +28,7 @@ func TestJSONStorage_SaveAndLoadTransactions(t *testing.T) {
 		},
 		{
 			ID:          "txn2",
-			AccountID:   "account1",
+			Account:     "account1",
 			Amount:      100.0,
 			Description: "Test income",
 			Categories:  []string{"salary"},

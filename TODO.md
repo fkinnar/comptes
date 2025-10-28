@@ -1,10 +1,10 @@
-# TODO List - Progression vers le MVP
+# TODO List - Progression du projet Comptes
 
-## 📊 Progression actuelle : 100% vers le MVP (20/20)
+## 📊 Progression actuelle : MVP + Améliorations UX complètes
 
 ---
 
-## ✅ COMPLETÉ (20/20)
+## ✅ COMPLETÉ - MVP (20/20) + Améliorations UX (15/15)
 
 ### 🏗️ Architecture & Infrastructure
 - ✅ Architecture en couches (Service → Storage → Domain)
@@ -39,22 +39,36 @@
 - ✅ Historique complet des modifications
 - ✅ Interface familière pour les développeurs
 
+### 🎨 Améliorations UX récentes
+- ✅ **Aide contextuelle** : `--categories (-c)` et `--tags (-t)` sur `list`
+- ✅ **Affichage amélioré** : Noms complets des catégories/tags au lieu des codes
+- ✅ **Flag --codes** : Pour revenir aux codes si nécessaire
+- ✅ **Support des formats CSV/JSON** : Pour catégories, tags et transactions
+- ✅ **Architecture cohérente** : Flag `--transactions` par défaut pour clarté
+- ✅ **CSV compatible Nushell** : Échappement correct des virgules dans les descriptions
+- ✅ **Suppression définitive** : `--hard` pour `delete` et `undo`
+- ✅ **Confirmation forcée** : `-f/--force` pour bypasser les confirmations
+- ✅ **Aide mise à jour** : Documentation complète des nouveaux flags
+- ✅ **Sécurité** : Confirmations obligatoires pour les opérations destructives
+- ✅ **Flexibilité** : Possibilité de bypasser les confirmations avec `--force`
+
 ### 🧪 Tests & Qualité
-- ✅ Tests d'intégration complets du MVP
+- ✅ Tests d'intégration complets du MVP (52 tests)
+- ✅ Tests unitaires complets (14 tests)
 - ✅ Plan de test complet avec edge cases
-- ✅ Script de test automatique (28 tests)
+- ✅ Script de test automatique avec nouvelles fonctionnalités
 - ✅ Pre-commit hooks avec validation complète
 - ✅ Configuration par défaut pour initialisation
+- ✅ Couverture 100% des nouvelles fonctionnalités
+- ✅ Tests des combinaisons complexes de flags
+- ✅ Tests des cas d'erreur et edge cases
+- ✅ Validation de compatibilité Nushell
 
 ---
 
-## 🎉 MVP COMPLET ! (20/20)
+## 🚀 PROCHAINES ÉTAPES - Priorités définies
 
----
-
-## 🎯 Prochaines étapes (post-MVP) - Priorités définies
-
-### 🚀 Priorité 1 : Ergonomie quotidienne (CRUCIAL)
+### 🎯 Priorité 1 : Ergonomie quotidienne (CRUCIAL)
 1. **Mode transactionnel avec contexte + Flags pour add** - Réduit drastiquement la verbosité
    ```bash
    # Mode transactionnel
@@ -71,14 +85,14 @@
    comptes add '{"account": "BANQUE", "amount": -100, "transfer_to": "LIVRET"}'
    ```
 
-### 🚀 Priorité 2 : Intégration pratique
+### 🎯 Priorité 2 : Intégration pratique
 3. **Import CSV** - Intégration avec relevés bancaires
    ```bash
    comptes add --file bank_statement.csv
    comptes add --csv "date,amount,description,category"
    ```
 
-### 🚀 Priorité 3 : Analytics basiques
+### 🎯 Priorité 3 : Analytics basiques
 4. **Rapports simples** - Vision claire des finances
    ```bash
    comptes report --month 2024-01
@@ -86,58 +100,37 @@
    comptes balance --trend
    ```
 
-### 🚀 Priorité 4 : Personnalisation
+### 🎯 Priorité 4 : Personnalisation
 5. **Gestion catégories/tags via CLI** - Personnalisation sans fichiers
    ```bash
    comptes category add "VET" "Vêtements"
    comptes tag add "IMP" "Important"
    ```
 
----
-
-## 🔧 Améliorations UX immédiates (à implémenter rapidement)
-
-### 📝 Interface utilisateur améliorée
-- ✅ **Aide contextuelle** : `--categories (-c)` et `--tags (-t)` sur `list` pour voir les options
-  ```bash
-  ./comptes list --categories  # Affiche toutes les catégories disponibles
-  ./comptes list --tags        # Affiche tous les tags disponibles
-  ```
-- ✅ **Affichage amélioré** : Noms complets des catégories/tags au lieu des codes
-  ```bash
-  ./comptes list  # Affiche "Alimentation" au lieu de "ALM"
-  ./comptes list --codes  # Flag pour garder les codes si besoin
-  ```
-- ✅ **Support des formats CSV/JSON** : Pour catégories, tags et transactions
-  ```bash
-  ./comptes list --categories --format csv  # Export CSV des catégories
-  ./comptes list --tags --format json        # Export JSON des tags
-  ./comptes list --transactions --format csv # Export CSV des transactions
-  ```
-- ✅ **Architecture cohérente** : Flag `--transactions` par défaut pour clarté
-- ✅ **CSV compatible Nushell** : Échappement correct des virgules dans les descriptions
-- **Flags pour add** : `--amount (-a)`, `--description (-d)`, `--categories (-c)`, `--tags (-t)`, `--date` (implémenté avec le mode transactionnel)
-
-### 🗑️ Opérations avancées
-- **Suppression définitive** : `--hard` pour `delete`, `edit`, `undo`
-  ```bash
-  ./comptes delete abc123 --hard -m "Dupliquée"  # Suppression définitive
-  ./comptes edit abc123 '{"amount": 100}' --hard -m "Correction définitive"
-  ./comptes undo def456 --hard  # Suppression définitive au lieu de désactivation
-  ```
-- **Confirmation forcée** : `-f/--force` pour bypasser les confirmations
-  ```bash
-  ./comptes delete abc123 --hard --force -m "Dupliquée"  # Pas de confirmation
-  ```
-
-### 🎨 Améliorations d'affichage
-- **Statut intelligent** : Pas de ✅/❌ pour `list` normal (toutes sont actives)
-- **Historique clair** : ✅/❌ seulement pour `list --history`
-- **Messages informatifs** : "removed" au lieu de "deactivated" pour undo edit
+### 🎯 Priorité 5 : Déploiement production (CRUCIAL)
+6. **Gestion des branches Git** - Séparation dev/production
+   ```bash
+   git checkout -b dev
+   # main = production stable
+   # dev = développement actif
+   ```
+7. **Installation système** - Fichiers aux bons endroits
+   ```bash
+   # Binaire dans le PATH
+   sudo cp comptes /usr/local/bin/
+   
+   # Config et données dans les répertoires système
+   mkdir -p ~/.config/comptes
+   mkdir -p ~/.local/share/comptes
+   
+   # Ou respecter XDG Base Directory
+   # ~/.config/comptes/config.yaml
+   # ~/.local/share/comptes/transactions.json
+   ```
 
 ---
 
-## ⚡ Améliorations techniques importantes (à faire rapidement)
+## 🔧 Améliorations techniques importantes (à faire rapidement)
 
 ### 🗄️ Performance et scalabilité
 - **Snapshots de solde** : Éviter de recalculer depuis le début
@@ -168,6 +161,13 @@
 - **Interface Storage enrichie** : Méthodes pour snapshots, indexation
 - **Service layer étendu** : Cache, validation avancée, analytics
 - **Configuration dynamique** : Modification des catégories/tags sans redémarrage
+
+### 🚀 Déploiement et distribution
+- **Respect XDG Base Directory** : `~/.config/comptes/` et `~/.local/share/comptes/`
+- **Installation système** : Binaire dans `/usr/local/bin/` ou `/opt/comptes/`
+- **Gestion des branches** : `main` (stable) vs `dev` (développement)
+- **Packaging** : Scripts d'installation pour différents OS
+- **Variables d'environnement** : `COMPTES_CONFIG_DIR`, `COMPTES_DATA_DIR`
 
 ---
 
@@ -258,8 +258,17 @@
 # Suppression avec message obligatoire
 ./comptes delete <id> -m "Transaction erronée"
 
+# Suppression définitive avec confirmation
+./comptes delete <id> --hard -m "Dupliquée"
+
+# Suppression définitive sans confirmation
+./comptes delete <id> --hard --force -m "Dupliquée"
+
 # Undo intelligent
 ./comptes undo <id>  # Détecte automatiquement le type d'opération
+
+# Undo définitif
+./comptes undo <id> --hard --force
 
 # Solde
 ./comptes balance
@@ -279,6 +288,10 @@
 8. **Affichage amélioré** : Vérifier noms complets vs codes avec `--codes`
 9. **CSV Nushell** : Tester `./comptes list --categories --format csv | from csv`
 10. **Architecture cohérente** : Vérifier que `--transactions` fonctionne comme par défaut
+11. **Suppression définitive** : Tester `--hard` avec et sans `--force`
+12. **Confirmations** : Tester les annulations (répondre "n")
+13. **Combinaisons complexes** : Tester plusieurs flags ensemble
+14. **Cas d'erreur** : Catégories/tags inexistants, formats invalides
 
 ---
 
@@ -293,8 +306,9 @@
 - **UUID courts** : Interface familière pour les développeurs
 - **Formats multiples** : CSV pour Nushell, JSON pour scripting
 - **Configuration par défaut** : Initialisation automatique sans fichiers
-- **Suite de tests** : 28 tests automatiques avec edge cases
+- **Suite de tests** : 52 tests automatiques avec edge cases
+- **UX moderne** : Aide contextuelle, affichage amélioré, confirmations intelligentes
 
 ---
 
-*Dernière mise à jour : 28 octobre 2025 - Nouvelles fonctionnalités UX implémentées*
+*Dernière mise à jour : 28 octobre 2025 - MVP + Améliorations UX complètes*

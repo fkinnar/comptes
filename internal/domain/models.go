@@ -25,6 +25,7 @@ type Transaction struct {
 	Categories  []string  `json:"categories"`
 	Tags        []string  `json:"tags"`
 	IsActive    bool      `json:"is_active"`
+	EditComment string    `json:"edit_comment,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }

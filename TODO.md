@@ -91,6 +91,43 @@
 
 ---
 
+## 🔧 Améliorations UX immédiates (à implémenter rapidement)
+
+### 📝 Interface utilisateur améliorée
+- **Flags pour add** : `--amount (-a)`, `--description (-d)`, `--categories (-c)`, `--tags (-t)`, `--date`
+  ```bash
+  ./comptes add -a -25.50 -d "Courses" -c ALM -t URG
+  ```
+- **Aide contextuelle** : `--categories (-c)` et `--tags (-t)` sur `list` pour voir les options
+  ```bash
+  ./comptes list --categories  # Affiche toutes les catégories disponibles
+  ./comptes list --tags        # Affiche tous les tags disponibles
+  ```
+- **Affichage amélioré** : Noms complets des catégories/tags au lieu des codes
+  ```bash
+  ./comptes list  # Affiche "Alimentation" au lieu de "ALM"
+  ./comptes list --codes  # Flag pour garder les codes si besoin
+  ```
+
+### 🗑️ Opérations avancées
+- **Suppression définitive** : `--hard` pour `delete`, `edit`, `undo`
+  ```bash
+  ./comptes delete abc123 --hard -m "Dupliquée"  # Suppression définitive
+  ./comptes edit abc123 '{"amount": 100}' --hard -m "Correction définitive"
+  ./comptes undo def456 --hard  # Suppression définitive au lieu de désactivation
+  ```
+- **Confirmation forcée** : `-f/--force` pour bypasser les confirmations
+  ```bash
+  ./comptes delete abc123 --hard --force -m "Dupliquée"  # Pas de confirmation
+  ```
+
+### 🎨 Améliorations d'affichage
+- **Statut intelligent** : Pas de ✅/❌ pour `list` normal (toutes sont actives)
+- **Historique clair** : ✅/❌ seulement pour `list --history`
+- **Messages informatifs** : "removed" au lieu de "deactivated" pour undo edit
+
+---
+
 ## ⚡ Améliorations techniques importantes (à faire rapidement)
 
 ### 🗄️ Performance et scalabilité

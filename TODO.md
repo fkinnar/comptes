@@ -1,10 +1,10 @@
 # TODO List - Progression vers le MVP
 
-## 📊 Progression actuelle : 50% vers le MVP (9/18)
+## 📊 Progression actuelle : 65% vers le MVP (13/20)
 
 ---
 
-## ✅ COMPLETÉ (9/18)
+## ✅ COMPLETÉ (13/20)
 
 ### 🏗️ Architecture & Infrastructure
 - ✅ Architecture en couches (Service → Storage → Domain)
@@ -18,6 +18,9 @@
 ### ⚙️ Fonctionnalités de base
 - ✅ Service de gestion des transactions (ajout, validation, calcul solde)
 - ✅ CLI de base (init, add, list, balance)
+- ✅ Support des dates flexibles dans JSON (today, yesterday, 2024-01-15)
+- ✅ Renommage account_id → account pour JSON plus propre
+- ✅ Interface JSON pure (suppression du flag --date)
 
 ---
 
@@ -25,7 +28,7 @@
 
 ---
 
-## ⏳ RESTANT À FAIRE (9/18)
+## ⏳ RESTANT À FAIRE (7/20)
 
 ### 🔧 CLI Avancé
 - ⏳ Commande edit (soft delete + nouvelle transaction)
@@ -68,9 +71,10 @@
 - **Validation groupée** : Vérification à la fin
 
 ### 📅 Gestion des dates
-- **Flag --date** : `--date 2024-01-15` ou `-d 2024-01-15`
-- **Formats flexibles** : `2024-01-15`, `15/01/2024`, `yesterday`, `last week`
-- **Validation** : Dates cohérentes et réalistes
+- ✅ **Support des dates flexibles dans JSON** : `today`, `yesterday`, `2024-01-15`
+- ✅ **Interface JSON pure** : Suppression du flag `--date` pour éviter les conflits
+- ✅ **Parser intelligent** : FlexibleDate type avec UnmarshalJSON personnalisé
+- ⏳ **Formats étendus** : `last week`, `next month`, etc. (post-MVP)
 
 ### 🧮 Calculs dans les requêtes
 - **Expressions** : `{45.00 - 12.00}` pour les calculs
@@ -86,7 +90,9 @@
 - **Infrastructure** : GitHub + pre-commit hooks
 - **Documentation** : README, SETUP, architecture détaillée
 - **Vision produit** : Fonctionnalités avancées identifiées pour l'évolution
+- **Interface JSON pure** : Cohérence et simplicité dans l'API CLI
+- **Dates flexibles** : Support des dates relatives directement dans le JSON
 
 ---
 
-*Dernière mise à jour : 27 octobre 2024*
+*Dernière mise à jour : 28 octobre 2024*

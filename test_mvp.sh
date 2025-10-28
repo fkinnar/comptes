@@ -127,6 +127,54 @@ run_test "Message manquant pour delete" "./comptes delete nonexistent" 1
 # Test 7: IDs et références
 run_test "ID inexistant" "./comptes edit nonexistent '{\"amount\": -30.00}' -m \"Test\"" 1
 
+# Test 7.5: Nouvelles fonctionnalités de list
+echo ""
+echo "📋 Test des nouvelles fonctionnalités de list"
+echo "============================================="
+
+# Ajouter quelques transactions avec catégories et tags pour tester
+./comptes add '{"account": "BANQUE", "amount": -25.50, "description": "Test categories", "categories": ["ALM"], "tags": ["REC"]}' >/dev/null 2>&1
+./comptes add '{"account": "BANQUE", "amount": 2800, "description": "Test tags", "categories": ["SLR"], "tags": ["URG"]}' >/dev/null 2>&1
+
+# Test aide contextuelle
+run_test "Aide contextuelle - catégories" "./comptes list --categories" 0
+run_test "Aide contextuelle - tags" "./comptes list --tags" 0
+run_test "Aide contextuelle - catégories court" "./comptes list -c" 0
+run_test "Aide contextuelle - tags court" "./comptes list -t" 0
+
+# Test formats CSV et JSON pour catégories et tags
+run_test "Catégories en CSV" "./comptes list --categories --format csv" 0
+run_test "Catégories en JSON" "./comptes list --categories --format json" 0
+run_test "Tags en CSV" "./comptes list --tags --format csv" 0
+run_test "Tags en JSON" "./comptes list --tags --format json" 0
+
+# Test affichage avec noms complets vs codes
+run_test "Liste avec noms complets" "./comptes list" 0
+run_test "Liste avec codes" "./comptes list --codes" 0
+
+# Test formats pour transactions
+run_test "Transactions en CSV (noms complets)" "./comptes list --transactions --format csv" 0
+run_test "Transactions en CSV (codes)" "./comptes list --transactions --format csv --codes" 0
+run_test "Transactions en JSON" "./comptes list --transactions --format json" 0
+
+# Test flag --transactions explicite
+run_test "Transactions explicites" "./comptes list --transactions" 0
+
+# Test combinaisons complexes
+run_test "Liste avec history et codes" "./comptes list --history --codes" 0
+run_test "Liste avec history, format csv et codes" "./comptes list --history --format csv --codes" 0
+run_test "Liste avec transactions, history et format json" "./comptes list --transactions --history --format json" 0
+
+# Test cas d'erreur pour formats invalides
+run_test "Format invalide (fallback vers text)" "./comptes list --categories --format invalid" 0
+
+# Test flags conflictuels (categories vs tags - categories gagne)
+run_test "Flags conflictuels (categories prioritaire)" "./comptes list --categories --tags" 0
+
+# Test cas d'erreur edge
+run_test "Catégorie inexistante" "./comptes add '{\"account\": \"BANQUE\", \"amount\": -50, \"description\": \"Test\", \"categories\": [\"INEXISTANT\"]}'" 1
+run_test "Tag inexistant" "./comptes add '{\"account\": \"BANQUE\", \"amount\": -50, \"description\": \"Test\", \"tags\": [\"INEXISTANT\"]}'" 1
+
 echo ""
 echo "🔄 Tests de cohérence..."
 echo "======================="
@@ -154,7 +202,37 @@ done
 run_test "Liste avec 50+ transactions" "./comptes list" 0
 run_test "Calcul de solde avec 50+ transactions" "./comptes balance" 0
 
-# Test 12: Migration
+# Test 12: Nouvelles fonctionnalités --hard et --force
+echo ""
+echo "🔧 Test des nouvelles fonctionnalités --hard et --force"
+echo "======================================================"
+
+# Ajouter une transaction pour tester
+./comptes add '{"account": "BANQUE", "amount": -100, "description": "Test hard delete", "categories": ["ALM"]}' >/dev/null 2>&1
+TEST_TXN_ID=$(./comptes list --format csv | tail -n +2 | head -1 | cut -d',' -f1)
+
+# Test suppression définitive avec confirmation (simuler "y")
+echo "y" | run_test "Suppression définitive avec confirmation" "./comptes delete $TEST_TXN_ID --hard -m \"Test suppression définitive\"" 0
+
+# Ajouter une autre transaction pour tester --force
+./comptes add '{"account": "BANQUE", "amount": -200, "description": "Test force delete", "categories": ["ALM"]}' >/dev/null 2>&1
+TEST_TXN_ID=$(./comptes list --format csv | tail -n +2 | head -1 | cut -d',' -f1)
+
+# Test suppression définitive avec --force (pas de confirmation)
+run_test "Suppression définitive avec --force" "./comptes delete $TEST_TXN_ID --hard --force -m \"Test suppression définitive avec force\"" 0
+
+# Ajouter une transaction pour tester undo --hard
+./comptes add '{"account": "BANQUE", "amount": -300, "description": "Test undo hard", "categories": ["ALM"]}' >/dev/null 2>&1
+TEST_TXN_ID=$(./comptes list --format csv | tail -n +2 | head -1 | cut -d',' -f1)
+
+# Test undo définitif avec --force
+run_test "Undo définitif avec --force" "./comptes undo $TEST_TXN_ID --hard --force" 0
+
+# Test annulation de confirmation (simuler "n")
+echo "n" | run_test "Annulation confirmation delete --hard" "./comptes delete test123 --hard -m \"Test annulation\"" 0
+echo "n" | run_test "Annulation confirmation undo --hard" "./comptes undo test456 --hard" 0
+
+# Test 13: Migration
 run_test "Migration des IDs" "./comptes migrate" 0
 
 echo ""

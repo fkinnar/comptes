@@ -790,3 +790,101 @@ func TestTransactionService_findTransactionByID(t *testing.T) {
 		t.Error("Expected error for ambiguous partial ID, got nil")
 	}
 }
+
+func TestTransactionService_DeleteTransactionHard(t *testing.T) {
+	now := time.Now()
+	mockStorage := &MockStorage{
+		transactions: []domain.Transaction{
+			{
+				ID:          "test123",
+				Account:     "account1",
+				Amount:      -25.0,
+				Description: "Test transaction",
+				IsActive:    true,
+				CreatedAt:   now,
+				UpdatedAt:   now,
+			},
+			{
+				ID:          "test456",
+				Account:     "account2",
+				Amount:      100.0,
+				Description: "Another transaction",
+				IsActive:    true,
+				CreatedAt:   now,
+				UpdatedAt:   now,
+			},
+		},
+	}
+
+	service := NewTransactionService(mockStorage)
+
+	// Test hard delete
+	err := service.DeleteTransactionHard("test123", "Permanent deletion")
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+
+	// Verify transaction was permanently removed
+	transactions := mockStorage.transactions
+	if len(transactions) != 1 {
+		t.Errorf("Expected 1 transaction remaining, got %d", len(transactions))
+	}
+	if transactions[0].ID != "test456" {
+		t.Errorf("Expected remaining transaction ID 'test456', got '%s'", transactions[0].ID)
+	}
+
+	// Test hard delete non-existent transaction
+	err = service.DeleteTransactionHard("nonexistent", "Test")
+	if err == nil {
+		t.Error("Expected error for non-existent transaction, got nil")
+	}
+}
+
+func TestTransactionService_UndoTransactionHard(t *testing.T) {
+	now := time.Now()
+	mockStorage := &MockStorage{
+		transactions: []domain.Transaction{
+			{
+				ID:          "test123",
+				Account:     "account1",
+				Amount:      -25.0,
+				Description: "Test transaction",
+				IsActive:    true,
+				CreatedAt:   now,
+				UpdatedAt:   now,
+			},
+			{
+				ID:          "test456",
+				Account:     "account2",
+				Amount:      100.0,
+				Description: "Another transaction",
+				IsActive:    true,
+				CreatedAt:   now,
+				UpdatedAt:   now,
+			},
+		},
+	}
+
+	service := NewTransactionService(mockStorage)
+
+	// Test hard undo
+	err := service.UndoTransactionHard("test123")
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+
+	// Verify transaction was permanently removed
+	transactions := mockStorage.transactions
+	if len(transactions) != 1 {
+		t.Errorf("Expected 1 transaction remaining, got %d", len(transactions))
+	}
+	if transactions[0].ID != "test456" {
+		t.Errorf("Expected remaining transaction ID 'test456', got '%s'", transactions[0].ID)
+	}
+
+	// Test hard undo non-existent transaction
+	err = service.UndoTransactionHard("nonexistent")
+	if err == nil {
+		t.Error("Expected error for non-existent transaction, got nil")
+	}
+}

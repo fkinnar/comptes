@@ -399,3 +399,63 @@ func (s *TransactionService) undoAdd(transactions []domain.Transaction, addedTra
 
 	return nil
 }
+
+// DeleteTransactionHard permanently deletes a transaction from storage
+func (s *TransactionService) DeleteTransactionHard(transactionID string, message string) error {
+	// Get all transactions
+	transactions, err := s.storage.GetTransactions()
+	if err != nil {
+		return errors.StorageReadFailed("transactions", err)
+	}
+
+	// Find the transaction to delete
+	targetTransaction, err := s.findTransactionByID(transactions, transactionID)
+	if err != nil {
+		return err
+	}
+
+	// Remove the transaction from the slice
+	var newTransactions []domain.Transaction
+	for _, txn := range transactions {
+		if txn.ID != targetTransaction.ID {
+			newTransactions = append(newTransactions, txn)
+		}
+	}
+
+	// Save back to storage
+	if err := s.storage.SaveTransactions(newTransactions); err != nil {
+		return errors.StorageWriteFailed("transactions", err)
+	}
+
+	return nil
+}
+
+// UndoTransactionHard permanently removes a transaction instead of soft delete
+func (s *TransactionService) UndoTransactionHard(transactionID string) error {
+	// Get all transactions
+	transactions, err := s.storage.GetTransactions()
+	if err != nil {
+		return errors.StorageReadFailed("transactions", err)
+	}
+
+	// Find the transaction to undo
+	targetTransaction, err := s.findTransactionByID(transactions, transactionID)
+	if err != nil {
+		return err
+	}
+
+	// Remove the transaction from the slice
+	var newTransactions []domain.Transaction
+	for _, txn := range transactions {
+		if txn.ID != targetTransaction.ID {
+			newTransactions = append(newTransactions, txn)
+		}
+	}
+
+	// Save back to storage
+	if err := s.storage.SaveTransactions(newTransactions); err != nil {
+		return errors.StorageWriteFailed("transactions", err)
+	}
+
+	return nil
+}

@@ -50,16 +50,30 @@ Example: comptes edit fd6647d8 '{"amount": -30.00}' -m "Correction montant"
 Note: You can use partial IDs like 'fd66' if unique
 Note: Message is mandatory for edit operations`
 
-	HelpDelete = `Usage: comptes delete <id> -m <message>
+	HelpDelete = `Usage: comptes delete <id> -m <message> [options]
 
-Example: comptes delete fd6647d8 -m "Transaction erronée"
+Options:
+  --hard            Permanently delete the transaction (cannot be undone)
+  -f, --force       Skip confirmation prompt for destructive operations
+
+Examples:
+  comptes delete fd6647d8 -m "Transaction erronée"           # Soft delete
+  comptes delete fd6647d8 --hard -m "Dupliquée"              # Permanent delete
+  comptes delete fd6647d8 --hard --force -m "Dupliquée"      # No confirmation
 
 Note: You can use partial IDs like 'fd66' if unique
 Note: Message is mandatory for delete operations`
 
-	HelpUndo = `Usage: comptes undo <id>
+	HelpUndo = `Usage: comptes undo <id> [options]
 
-Example: comptes undo fd6647d8
+Options:
+  --hard            Permanently remove the transaction (cannot be undone)
+  -f, --force       Skip confirmation prompt for destructive operations
+
+Examples:
+  comptes undo fd6647d8                    # Soft undo (restore transaction)
+  comptes undo fd6647d8 --hard             # Permanent removal
+  comptes undo fd6647d8 --hard --force     # No confirmation
 
 Note: You can use partial IDs like 'fd66' if unique
 Note: Undoes the last operation (add/edit/delete) on the transaction`

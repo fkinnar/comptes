@@ -37,3 +37,16 @@ Thumbs.db
 data/
 config/config.yaml
 *.log
+
+# Test files and directories
+test-config/
+test-data/
+test_categories.csv
+
+# Temporary documentation images
+docs/image/
+image/TODO/
+
+# Temporary files
+*.tmp
+*.temp

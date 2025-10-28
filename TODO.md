@@ -52,11 +52,99 @@
 
 ---
 
-## 🎯 Prochaines étapes (post-MVP)
+## 🎯 Prochaines étapes (post-MVP) - Priorités définies
 
-1. **Documentation** complète du projet
-2. **Fonctionnalités avancées** (multi-comptes, gestion catégories)
-3. **Mode transactionnel** avec contexte partagé
+### 🚀 Priorité 1 : Ergonomie quotidienne (CRUCIAL)
+1. **Mode transactionnel avec contexte** - Réduit drastiquement la verbosité
+   ```bash
+   comptes account BANQUE
+   comptes category ALM
+   comptes add '{"amount": -25.50, "description": "Courses"}'
+   comptes commit
+   ```
+2. **Support multi-comptes avec transferts** - Gestion réaliste des finances
+   ```bash
+   comptes add '{"account": "BANQUE", "amount": -100, "transfer_to": "LIVRET"}'
+   ```
+
+### 🚀 Priorité 2 : Intégration pratique
+3. **Import CSV** - Intégration avec relevés bancaires
+   ```bash
+   comptes add --file bank_statement.csv
+   comptes add --csv "date,amount,description,category"
+   ```
+
+### 🚀 Priorité 3 : Analytics basiques
+4. **Rapports simples** - Vision claire des finances
+   ```bash
+   comptes report --month 2024-01
+   comptes report --category ALM --from 2024-01-01
+   comptes balance --trend
+   ```
+
+### 🚀 Priorité 4 : Personnalisation
+5. **Gestion catégories/tags via CLI** - Personnalisation sans fichiers
+   ```bash
+   comptes category add "VET" "Vêtements"
+   comptes tag add "IMP" "Important"
+   ```
+
+---
+
+## ⚡ Améliorations techniques importantes (à faire rapidement)
+
+### 🗄️ Performance et scalabilité
+- **Snapshots de solde** : Éviter de recalculer depuis le début
+  ```go
+  // Ajouter des snapshots périodiques pour accélérer les calculs
+  type BalanceSnapshot struct {
+      AccountID string    `json:"account_id"`
+      Balance   float64   `json:"balance"`
+      Date      time.Time `json:"date"`
+      LastTxnID string    `json:"last_transaction_id"`
+  }
+  ```
+- **Couche de cache** : Entre Service et Storage pour optimiser les lectures
+- **Indexation** : Pour les recherches rapides par date, catégorie, etc.
+
+### 🗃️ Storage avancé
+- **Migration SQLite** : Quand la structure sera validée à l'usage
+  ```go
+  // Nouvelle implémentation Storage
+  type SQLiteStorage struct {
+      db *sql.DB
+  }
+  ```
+- **Couche d'abstraction** : Au-dessus du Storage pour la logique métier
+- **Migration automatique** : JSON → SQLite sans perte de données
+
+### 🔄 Architecture évolutive
+- **Interface Storage enrichie** : Méthodes pour snapshots, indexation
+- **Service layer étendu** : Cache, validation avancée, analytics
+- **Configuration dynamique** : Modification des catégories/tags sans redémarrage
+
+---
+
+## 🧪 Approche de validation et amélioration continue
+
+### 📊 Utilisation pour validation
+- **Usage quotidien** : Identifier les points de friction
+- **Tests de charge** : Avec de vraies données (1000+ transactions)
+- **Validation structure** : Confirmer que les modèles sont adaptés
+- **Feedback utilisateur** : Améliorer l'ergonomie basée sur l'usage réel
+
+### 🔄 Cycle d'amélioration
+1. **Utiliser l'outil** avec des données réelles
+2. **Identifier les problèmes** de performance/ergonomie
+3. **Implémenter les corrections** prioritaires
+4. **Valider les améliorations** avec de nouveaux tests
+5. **Répéter** jusqu'à satisfaction
+
+### 🎯 Objectif : Outil fonctionnel en quelques jours
+- **Priorités 1-2** : Ergonomie quotidienne (mode transactionnel + multi-comptes)
+- **Priorité 3** : Import CSV pour intégration
+- **Priorité 4** : Analytics basiques pour vision
+- **Améliorations techniques** : Snapshots, SQLite, cache
 
 ---
 

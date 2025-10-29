@@ -7,20 +7,35 @@ import (
 	"strings"
 )
 
+// AccountWithBalance represents an account with its current balance
+type AccountWithBalance struct {
+	domain.Account
+	CurrentBalance float64 `json:"current_balance"`
+}
+
 func (c *CLI) handleList(args []string) error {
 	format := "text" // Format par défaut
 	showHistory := false
 	showCategories := false
 	showTags := false
+	showAccounts := false
 	showTransactions := true // Par défaut, on liste les transactions
 	showCodes := false
 
+	// Check for help flag first
+	for _, arg := range args {
+		if arg == "--help" || arg == "-?" {
+			ShowHelp("list")
+			return nil
+		}
+	}
+
 	// Check for flags
 	for i, arg := range args {
-		if arg == "--format" && i+1 < len(args) {
+		if (arg == "--format" || arg == "-F") && i+1 < len(args) {
 			format = args[i+1]
 		}
-		if arg == "--history" {
+		if arg == "--history" || arg == "-h" {
 			showHistory = true
 		}
 		if arg == "--categories" || arg == "-c" {
@@ -31,10 +46,14 @@ func (c *CLI) handleList(args []string) error {
 			showTags = true
 			showTransactions = false
 		}
-		if arg == "--transactions" {
+		if arg == "--accounts" || arg == "-a" {
+			showAccounts = true
+			showTransactions = false
+		}
+		if arg == "--transactions" || arg == "-T" {
 			showTransactions = true
 		}
-		if arg == "--codes" {
+		if arg == "--codes" || arg == "-k" {
 			showCodes = true
 		}
 	}
@@ -45,6 +64,9 @@ func (c *CLI) handleList(args []string) error {
 	}
 	if showTags {
 		return c.showTags(format)
+	}
+	if showAccounts {
+		return c.showAccounts(format)
 	}
 	if showTransactions {
 		return c.listTransactions(format, showHistory, showCodes)
@@ -394,6 +416,80 @@ func (c *CLI) showTagsCSV(tags []domain.Tag) error {
 // showTagsJSON displays tags in JSON format
 func (c *CLI) showTagsJSON(tags []domain.Tag) error {
 	jsonData, err := json.MarshalIndent(tags, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal JSON: %w", err)
+	}
+	fmt.Println(string(jsonData))
+	return nil
+}
+
+// showAccounts displays all available accounts
+func (c *CLI) showAccounts(format string) error {
+	accounts, err := c.storage.GetAccounts()
+	if err != nil {
+		return fmt.Errorf("error loading accounts: %w", err)
+	}
+
+	if len(accounts) == 0 {
+		fmt.Println("No accounts found.")
+		return nil
+	}
+
+	// Calculate current balances for each account
+	accountsWithBalance := make([]AccountWithBalance, len(accounts))
+	for i, acc := range accounts {
+		balance, err := c.transactionService.GetAccountBalance(acc.ID)
+		if err != nil {
+			balance = acc.InitialBalance // Fallback to initial balance if calculation fails
+		}
+		accountsWithBalance[i] = AccountWithBalance{
+			Account:        acc,
+			CurrentBalance: balance,
+		}
+	}
+
+	switch format {
+	case "csv":
+		return c.showAccountsCSV(accountsWithBalance)
+	case "json":
+		return c.showAccountsJSON(accountsWithBalance)
+	default:
+		return c.showAccountsText(accountsWithBalance)
+	}
+}
+
+// showAccountsText displays accounts in text format
+func (c *CLI) showAccountsText(accounts []AccountWithBalance) error {
+	fmt.Println("Available accounts:")
+	fmt.Println("==================")
+	for _, acc := range accounts {
+		status := "✅"
+		if !acc.IsActive {
+			status = "❌"
+		}
+		fmt.Printf("%s %s (%s) - %.2f %s", status, acc.Name, acc.ID, acc.CurrentBalance, acc.Currency)
+		if acc.InitialBalance != acc.CurrentBalance {
+			fmt.Printf(" (initial: %.2f %s)", acc.InitialBalance, acc.Currency)
+		}
+		fmt.Println()
+	}
+	return nil
+}
+
+// showAccountsCSV displays accounts in CSV format
+func (c *CLI) showAccountsCSV(accounts []AccountWithBalance) error {
+	fmt.Println("id,name,type,currency,initial_balance,current_balance,is_active")
+	for _, acc := range accounts {
+		name := strings.ReplaceAll(acc.Name, "\"", "\"\"")
+		fmt.Printf("%s,\"%s\",%s,%s,%.2f,%.2f,%t\n",
+			acc.ID, name, acc.Type, acc.Currency, acc.InitialBalance, acc.CurrentBalance, acc.IsActive)
+	}
+	return nil
+}
+
+// showAccountsJSON displays accounts in JSON format
+func (c *CLI) showAccountsJSON(accounts []AccountWithBalance) error {
+	jsonData, err := json.MarshalIndent(accounts, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}

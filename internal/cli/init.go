@@ -50,7 +50,7 @@ func (c *CLI) initProject() error {
 		return err
 	}
 
-	// Create empty transactions file
+	// Create empty movements file
 	if err := c.storage.SaveTransactions([]domain.Transaction{}); err != nil {
 		return err
 	}

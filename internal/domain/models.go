@@ -48,3 +48,13 @@ type Tag struct {
 	Children    []string `json:"children"`
 	Description string   `json:"description"`
 }
+
+// TransactionBatch represents a batch of transactions that can be committed or rolled back together
+type TransactionBatch struct {
+	ID           string        `json:"id"`
+	Description  string        `json:"description,omitempty"`
+	CreatedAt    time.Time     `json:"created_at"`
+	CommittedAt  *time.Time    `json:"committed_at,omitempty"`
+	RolledBackAt *time.Time    `json:"rolled_back_at,omitempty"`
+	Transactions []Transaction `json:"transactions"`
+}

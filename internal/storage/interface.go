@@ -22,4 +22,12 @@ type Storage interface {
 	// Tags
 	GetTags() ([]domain.Tag, error)
 	SaveTags(tags []domain.Tag) error
+
+	// Transaction Batches
+	GetPendingBatches() ([]domain.TransactionBatch, error)
+	SavePendingBatches(batches []domain.TransactionBatch) error
+	GetCommittedBatches() ([]domain.TransactionBatch, error)
+	SaveCommittedBatches(batches []domain.TransactionBatch) error
+	GetRolledBackBatches() ([]domain.TransactionBatch, error)
+	SaveRolledBackBatches(batches []domain.TransactionBatch) error
 }

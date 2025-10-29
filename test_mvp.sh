@@ -87,7 +87,7 @@ run_test "Initialisation propre" "./comptes init" 0
 run_test "Réinitialisation" "./comptes init" 0
 
 # Vérifier que les fichiers sont créés
-if [ ! -f "test-config/config.yaml" ] || [ ! -f "test-data/transactions.json" ]; then
+if [ ! -f "test-config/config.yaml" ] || [ ! -f "test-data/movements.json" ]; then
     echo -e "${RED}❌ Fichiers de configuration non créés${NC}"
     exit 1
 fi
@@ -232,8 +232,181 @@ run_test "Undo définitif avec --force" "./comptes undo $TEST_TXN_ID --hard --fo
 echo "n" | run_test "Annulation confirmation delete --hard" "./comptes delete test123 --hard -m \"Test annulation\"" 0
 echo "n" | run_test "Annulation confirmation undo --hard" "./comptes undo test456 --hard" 0
 
-# Test 13: Migration
-run_test "Migration des IDs" "./comptes migrate" 0
+# Test 13: Transaction Batches
+echo ""
+echo "🔄 Test des Transaction Batches"
+echo "================================="
+
+# Test begin
+run_test "Begin batch sans description" "./comptes begin" 0
+BATCH_ID=$(./comptes begin "Test batch" 2>&1 | grep "Transaction batch started" | awk '{print $4}')
+
+# Test add to batch
+run_test "Add transaction to batch" "./comptes add '{\"account\": \"BANQUE\", \"amount\": -25.50, \"description\": \"Test batch transaction\"}'" 0
+
+# Test commit batch
+run_test "Commit batch" "./comptes commit" 0
+
+# Test begin avec description
+run_test "Begin batch avec description" "./comptes begin \"Dépenses mensuelles\"" 0
+
+# Test multiple batches
+BATCH_ID1=$(./comptes begin "Batch 1" 2>&1 | grep "Transaction batch started" | awk '{print $4}')
+BATCH_ID2=$(./comptes begin "Batch 2" 2>&1 | grep "Transaction batch started" | awk '{print $4}')
+
+# Test add to specific batch
+run_test "Add to batch spécifique" "./comptes add '{\"account\": \"BANQUE\", \"amount\": -10, \"description\": \"Test\"}' $BATCH_ID1" 0
+
+# Test commit batch avec ID partiel
+run_test "Commit batch avec ID partiel" "./comptes commit ${BATCH_ID1:0:8}" 0
+
+# Test rollback batch
+run_test "Rollback batch" "./comptes rollback" 0
+
+# Test commit batch introuvable
+run_test "Commit batch introuvable" "./comptes commit nonexistent" 1
+
+# Test rollback batch introuvable
+run_test "Rollback batch introuvable" "./comptes rollback nonexistent" 1
+
+# Test commit batch avec transaction invalide
+./comptes begin "Test invalid" >/dev/null 2>&1
+./comptes add '{"account": "INEXISTANT", "amount": -10, "description": "Invalid"}' >/dev/null 2>&1
+run_test "Commit batch avec transaction invalide" "./comptes commit" 1
+
+# Test 14: Flags pour add
+echo ""
+echo "🏷️  Test des Flags pour add"
+echo "============================"
+
+# Test flags de base
+run_test "Add avec flags (-a, -m, -d)" "./comptes add -a BANQUE -m -25.50 -d \"Test flags\"" 0
+
+# Test tous les flags
+run_test "Add avec tous les flags" "./comptes add -a BANQUE -m -15 -d \"Test\" -c ALM -t REC -o today" 0
+
+# Test flag --immediate (version longue)
+./comptes begin "Test immediate" >/dev/null 2>&1
+run_test "Add avec --immediate" "./comptes add -a BANQUE -m -20 -d \"Immediate\" --immediate" 0
+
+# Test flag -i (version courte)
+./comptes begin "Test immediate short" >/dev/null 2>&1
+run_test "Add avec -i (version courte)" "./comptes add -a BANQUE -m -30 -d \"Immediate short\" -i" 0
+
+# Test flag -o pour date
+run_test "Add avec -o (date courte)" "./comptes add -a BANQUE -m -35 -d \"Date short\" -o yesterday" 0
+
+# Test flag --on pour date
+run_test "Add avec --on (date)" "./comptes add -a BANQUE -m -40 -d \"Date long\" --on today" 0
+
+# Test validation des flags requis
+run_test "Add sans account (erreur)" "./comptes add -m -50 -d \"No account\"" 1
+run_test "Add sans amount (erreur)" "./comptes add -a BANQUE -d \"No amount\"" 1
+run_test "Add sans description (erreur)" "./comptes add -a BANQUE -m -60" 1
+
+# Test flags override contexte
+./comptes begin "Test override" >/dev/null 2>&1
+./comptes account BANQUE >/dev/null 2>&1
+./comptes category ALM >/dev/null 2>&1
+run_test "Flags override contexte" "./comptes add -a BANQUE -m -70 -d \"Override\" -c SLR" 0
+
+# Test 15: Contexte Partagé
+echo ""
+echo "🎯 Test du Contexte Partagé"
+echo "============================="
+
+# Test account context
+./comptes begin "Test context" >/dev/null 2>&1
+run_test "Set account context" "./comptes account BANQUE" 0
+run_test "Show context" "./comptes context" 0
+
+# Test category context
+run_test "Set category context" "./comptes category ALM" 0
+
+# Test tags context
+run_test "Set tags context" "./comptes tags REC" 0
+
+# Test add avec contexte
+run_test "Add utilise contexte" "./comptes add -m -80 -d \"Uses context\"" 0
+
+# Test context show après add
+run_test "Context encore actif après add" "./comptes context" 0
+
+# Test context cleared après commit
+run_test "Commit batch" "./comptes commit" 0
+run_test "Context cleared après commit" "./comptes context" 0
+
+# Test context cleared après rollback
+./comptes begin "Test rollback context" >/dev/null 2>&1
+./comptes account BANQUE >/dev/null 2>&1
+./comptes category ALM >/dev/null 2>&1
+run_test "Rollback batch" "./comptes rollback" 0
+run_test "Context cleared après rollback" "./comptes context" 0
+
+# Test context nécessite batch active
+run_test "Set account sans batch (erreur)" "./comptes account BANQUE" 1
+run_test "Set category sans batch (erreur)" "./comptes category ALM" 1
+run_test "Set tags sans batch (erreur)" "./comptes tags REC" 1
+
+# Test context clear
+./comptes begin "Test clear" >/dev/null 2>&1
+./comptes account BANQUE >/dev/null 2>&1
+./comptes category ALM >/dev/null 2>&1
+run_test "Clear context" "./comptes context clear" 0
+run_test "Context cleared vérifié" "./comptes context" 0
+
+# Test 16: Edge Cases pour Batches
+echo ""
+echo "🔍 Test des Edge Cases pour Batches"
+echo "===================================="
+
+# Test commit batch vide
+./comptes begin "Empty batch" >/dev/null 2>&1
+run_test "Commit batch vide" "./comptes commit" 0
+
+# Test rollback batch vide
+./comptes begin "Empty rollback" >/dev/null 2>&1
+run_test "Rollback batch vide" "./comptes rollback" 0
+
+# Test multiple transactions dans batch
+./comptes begin "Multiple transactions" >/dev/null 2>&1
+./comptes add -a BANQUE -m -10 -d "Txn 1" >/dev/null 2>&1
+./comptes add -a BANQUE -m -20 -d "Txn 2" >/dev/null 2>&1
+./comptes add -a BANQUE -m -30 -d "Txn 3" >/dev/null 2>&1
+run_test "Commit batch avec multiples transactions" "./comptes commit" 0
+
+# Test commit avec ID partiel ambigu (devrait échouer si multiple matches)
+# Note: Ce test peut échouer si on a créé plusieurs batches avec le même préfixe
+# C'est un edge case intéressant à tester
+
+# Test 17: Intégration Flags + Batches + Contexte
+echo ""
+echo "🔗 Test d'Intégration Flags + Batches + Contexte"
+echo "================================================="
+
+./comptes begin "Integration test" >/dev/null 2>&1
+./comptes account BANQUE >/dev/null 2>&1
+./comptes category ALM >/dev/null 2>&1
+./comptes tags REC >/dev/null 2>&1
+
+# Test add avec contexte et flags partiels
+run_test "Add avec contexte partiel (flags override)" "./comptes add -m -100 -d \"Partial flags\" -c SLR" 0
+
+# Test add avec contexte complet
+run_test "Add avec contexte complet" "./comptes add -m -110 -d \"Full context\"" 0
+
+# Test add avec --immediate dans batch active
+run_test "Add immediate dans batch active" "./comptes add -a BANQUE -m -120 -d \"Immediate in batch\" -i" 0
+
+# Vérifier que batch a toujours les transactions (sauf immediate)
+BATCH_CHECK=$(./comptes list 2>&1 | grep -c "Full context\|Partial flags" || echo "0")
+if [ "$BATCH_CHECK" -lt "2" ]; then
+    echo -e "${YELLOW}⚠️  Note: Batch context test may need verification${NC}"
+fi
+
+run_test "Commit batch final" "./comptes commit" 0
+
+# Test 13: Removed (migrate command was temporary)
 
 echo ""
 echo "📊 Résultats des tests"

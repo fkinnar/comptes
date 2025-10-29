@@ -125,7 +125,7 @@
    
    # Ou respecter XDG Base Directory
    # ~/.config/comptes/config.yaml
-   # ~/.local/share/comptes/transactions.json
+   # ~/.local/share/comptes/movements.json
    ```
 
 ---
@@ -273,8 +273,8 @@
 # Solde
 ./comptes balance
 
-# Migration des IDs
-./comptes migrate
+# Migration des IDs (commande supprimée, plus nécessaire)
+# ./comptes migrate
 ```
 
 ### 🔍 Cas de test spécifiques

@@ -46,7 +46,7 @@ func (c *CLI) handleDelete(args []string) error {
 	transactionID := args[2]
 
 	// Check for help flag
-	if transactionID == "--help" || transactionID == "-h" {
+	if transactionID == "--help" || transactionID == "-?" {
 		ShowHelp("delete")
 		return nil
 	}
@@ -60,7 +60,7 @@ func (c *CLI) handleDelete(args []string) error {
 		if (arg == "-m" || arg == "--message") && i+1 < len(args) {
 			message = args[i+1]
 		}
-		if arg == "--hard" {
+		if arg == "--hard" || arg == "-H" {
 			hardDelete = true
 		}
 		if arg == "-f" || arg == "--force" {
@@ -108,7 +108,7 @@ func (c *CLI) handleUndo(args []string) error {
 	transactionID := args[2]
 
 	// Check for help flag
-	if transactionID == "--help" || transactionID == "-h" {
+	if transactionID == "--help" || transactionID == "-?" {
 		ShowHelp("undo")
 		return nil
 	}
@@ -118,7 +118,7 @@ func (c *CLI) handleUndo(args []string) error {
 	var force bool
 
 	for _, arg := range args {
-		if arg == "--hard" {
+		if arg == "--hard" || arg == "-H" {
 			hardUndo = true
 		}
 		if arg == "-f" || arg == "--force" {

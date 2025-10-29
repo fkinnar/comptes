@@ -3,7 +3,6 @@ package service
 import (
 	"comptes/internal/domain"
 	"fmt"
-	"strings"
 	"testing"
 	"time"
 )
@@ -77,6 +76,30 @@ func (m *MockStorage) GetAccountBalance(accountID string) (float64, error) {
 	}
 
 	return balance, nil
+}
+
+func (m *MockStorage) GetPendingBatches() ([]domain.TransactionBatch, error) {
+	return []domain.TransactionBatch{}, nil
+}
+
+func (m *MockStorage) SavePendingBatches(batches []domain.TransactionBatch) error {
+	return nil
+}
+
+func (m *MockStorage) GetCommittedBatches() ([]domain.TransactionBatch, error) {
+	return []domain.TransactionBatch{}, nil
+}
+
+func (m *MockStorage) SaveCommittedBatches(batches []domain.TransactionBatch) error {
+	return nil
+}
+
+func (m *MockStorage) GetRolledBackBatches() ([]domain.TransactionBatch, error) {
+	return []domain.TransactionBatch{}, nil
+}
+
+func (m *MockStorage) SaveRolledBackBatches(batches []domain.TransactionBatch) error {
+	return nil
 }
 
 func TestTransactionService_AddTransaction(t *testing.T) {
@@ -616,105 +639,6 @@ func TestTransactionService_UndoTransaction_UndoEdit(t *testing.T) {
 	}
 	if txn.EditComment != "" {
 		t.Errorf("Expected empty edit comment, got '%s'", txn.EditComment)
-	}
-}
-
-func TestTransactionService_MigrateTransactionIDs(t *testing.T) {
-	// Setup
-	now := time.Now()
-	mockStorage := &MockStorage{
-		transactions: []domain.Transaction{
-			{
-				ID:          "txn_old1",
-				Account:     "account1",
-				Amount:      -50.0,
-				Description: "Old transaction",
-				IsActive:    true,
-				CreatedAt:   now,
-				UpdatedAt:   now,
-			},
-			{
-				ID:          "new123",
-				Account:     "account1",
-				Amount:      -25.0,
-				Description: "New transaction",
-				IsActive:    true,
-				CreatedAt:   now,
-				UpdatedAt:   now,
-			},
-		},
-		accounts: []domain.Account{
-			{
-				ID:             "account1",
-				Name:           "Test Account",
-				Type:           "checking",
-				Currency:       "EUR",
-				InitialBalance: 1000.0,
-				IsActive:       true,
-				CreatedAt:      now,
-			},
-		},
-		categories: []domain.Category{},
-		tags:       []domain.Tag{},
-	}
-
-	service := NewTransactionService(mockStorage)
-
-	// Mock ID generator - generate UUIDs for migration
-	idCounter := 0
-	generateID := func() string {
-		idCounter++
-		return fmt.Sprintf("new-uuid-%d", idCounter)
-	}
-
-	// Test migrating transaction IDs
-	err := service.MigrateTransactionIDs(generateID)
-	if err != nil {
-		t.Errorf("Expected no error, got %v", err)
-	}
-
-	// Verify only old IDs were migrated
-	transactions, _ := mockStorage.GetTransactions()
-	if len(transactions) != 2 {
-		t.Errorf("Expected 2 transactions, got %d", len(transactions))
-	}
-
-	// Find the migrated transaction
-	var migratedTransaction *domain.Transaction
-	for _, txn := range transactions {
-		if txn.Description == "Old transaction" {
-			migratedTransaction = &txn
-			break
-		}
-	}
-
-	if migratedTransaction == nil {
-		t.Error("Migrated transaction not found")
-	} else {
-		if migratedTransaction.ID == "txn_old1" {
-			t.Error("Expected transaction ID to be migrated, but it's still 'txn_old1'")
-		}
-		if !strings.HasPrefix(migratedTransaction.ID, "new-uuid-") {
-			t.Errorf("Expected migrated ID to start with 'new-uuid-', got '%s'", migratedTransaction.ID)
-		}
-	}
-
-	// Verify new transaction was migrated (since it's not 11 characters)
-	var newTransaction *domain.Transaction
-	for _, txn := range transactions {
-		if txn.Description == "New transaction" {
-			newTransaction = &txn
-			break
-		}
-	}
-
-	if newTransaction == nil {
-		t.Error("New transaction not found")
-	} else {
-		// The new transaction should have been migrated since "new123" is not 11 characters
-		if !strings.HasPrefix(newTransaction.ID, "new-uuid-") {
-			t.Errorf("Expected new transaction ID to start with 'new-uuid-', got '%s'", newTransaction.ID)
-		}
 	}
 }
 

@@ -5,13 +5,29 @@ Un outil en ligne de commande minimal pour gérer ses comptes personnels, écrit
 ## 🚀 Démarrage rapide
 
 ### Compilation
+
+#### Méthode recommandée (avec Makefile)
+```bash
+# Compiler l'exécutable (signature automatique sur macOS)
+make build
+
+# Voir toutes les options disponibles
+make help
+```
+
+#### Méthode manuelle
 ```bash
 # Compiler l'exécutable
 go build -o comptes cmd/comptes/main.go
 
+# Sur macOS, signer le binaire (nécessaire pour macOS 15+)
+codesign --sign - comptes
+
 # Ou utiliser go run pour tester
 go run cmd/comptes/main.go init
 ```
+
+> ⚠️ **Note macOS** : Si vous voyez l'erreur `dyld: missing LC_UUID load command`, c'est parce que macOS 15+ exige cette commande de chargement. Mettez à jour Go vers 1.24+ pour une solution permanente, ou utilisez `make build` qui gère automatiquement la signature.
 
 ### Configuration et initialisation
 ```bash
@@ -22,8 +38,11 @@ go run cmd/comptes/main.go init
 
 ### Utilisation
 ```bash
-# Ajouter une transaction
-./comptes add '{"account_id":"account1","amount":-25.50,"description":"Achat gâteau","categories":["alimentation"]}'
+# Ajouter une transaction (format JSON)
+./comptes add '{"account":"BANQUE","amount":-25.50,"description":"Achat gâteau","categories":["ALM"]}'
+
+# Ajouter une transaction (format flags - plus simple)
+./comptes add -a BANQUE -m -25.50 --desc "Achat gâteau" -c ALM
 
 # Voir les transactions
 ./comptes list
@@ -53,7 +72,7 @@ comptes/
 │       └── transaction.go   # Logique métier des transactions
 ├── data/                   # Données JSON (créé à l'exécution)
 │   ├── accounts.json
-│   ├── transactions.json
+│   ├── movements.json      # Mouvements financiers (anciennement transactions.json)
 │   ├── categories.json
 │   └── tags.json
 ├── config/
@@ -137,7 +156,7 @@ go mod verify
 
 ### Structure des fichiers JSON
 - **accounts.json** : Comptes avec soldes initiaux
-- **transactions.json** : Toutes les transactions
+- **movements.json** : Tous les mouvements financiers (anciennement transactions.json)
 - **categories.json** : Catégories disponibles
 - **tags.json** : Tags disponibles
 
@@ -169,15 +188,30 @@ go mod verify
 
 ## 🎮 Commandes principales
 
+### ✅ Commandes implémentées
+
 - `init` : Initialiser le projet
-- `add` : Ajouter une transaction
-- `list` : Lister les transactions
+- `add` : Ajouter un mouvement (avec support batch transactionnel)
+- `list` : Lister les mouvements, catégories, tags, ou comptes
+- `edit` : Modifier un mouvement existante (soft delete + nouveau)
+- `delete` : Supprimer un mouvement (soft delete avec option --hard)
+- `undo` : Annuler la dernière opération sur un mouvement
 - `balance` : Afficher les soldes des comptes
-- `edit` : Modifier une transaction existante (à venir)
-- `delete` : Supprimer une transaction (à venir)
-- `budget` : Gérer le budget mensuel (à venir)
-- `forecast` : Calculer les prévisions (à venir)
-- `categories` : Gérer les catégories (à venir)
-- `tags` : Gérer les mots-clés (à venir)
-- `savings` : Gérer les objectifs d'épargne (à venir)
-- `comments` : Gérer les commentaires de transactions (à venir)
+- `begin` : Commencer une transaction batch
+- `commit` : Commiter une transaction batch
+- `rollback` : Rollback une transaction batch
+
+### ⏳ Fonctionnalités à venir
+
+- `budget` : Gérer le budget mensuel
+- `forecast` : Calculer les prévisions
+- `categories` : Gérer les catégories (CLI)
+- `tags` : Gérer les tags (CLI)
+- `accounts` : Gérer les comptes (CLI)
+- `savings` : Gérer les objectifs d'épargne
+- Import CSV
+- Contexte partagé pour le mode transactionnel
+- Filtres avancés pour `list` (dates, montants, comptes)
+- Recherche dans les descriptions
+
+Consultez [docs/cli-commands.md](docs/cli-commands.md) pour la documentation complète.

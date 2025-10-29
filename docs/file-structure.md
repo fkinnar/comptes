@@ -43,7 +43,7 @@ comptes/
 │       ├── savings.go          # Commande savings
 │       └── comments.go         # Commande comments
 ├── data/                        # Données par défaut
-│   ├── transactions.json
+│   ├── movements.json        # Mouvements financiers (anciennement transactions.json)
 │   ├── comments.json
 │   ├── categories.json
 │   ├── tags.json
@@ -93,7 +93,7 @@ Interface en ligne de commande :
 
 ### `data/`
 Fichiers de données JSON :
-- `transactions.json` : Liste des transactions
+- `movements.json` : Liste des mouvements financiers (anciennement transactions.json)
 - `categories.json` : Définitions des catégories
 - `tags.json` : Définitions des tags
 - `budgets.json` : Budgets mensuels

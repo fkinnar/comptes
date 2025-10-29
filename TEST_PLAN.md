@@ -190,12 +190,12 @@ rm -rf data/
 # Vérifier: Erreur ou création automatique
 
 # Test 12.2: Fichier JSON corrompu
-echo "invalid json" > data/transactions.json
+echo "invalid json" > data/movements.json
 ./comptes list
 # Vérifier: Erreur de parsing ou récupération
 
 # Test 12.3: Permissions en lecture seule
-chmod 444 data/transactions.json
+chmod 444 data/movements.json
 ./comptes add '{"account": "BANQUE", "amount": -25.50, "description": "Test", "categories": ["ALM"]}'
 # Vérifier: Erreur de permission
 ```
@@ -236,12 +236,8 @@ done
 
 ### 15. Migration et compatibilité
 ```bash
-# Test 15.1: Migration des anciens IDs
-# Créer manuellement des transactions avec anciens IDs
-echo '[{"id": "txn_1234567890", "account": "BANQUE", "amount": -25.50, "description": "Test", "categories": ["ALM"], "is_active": true, "created_at": "2024-01-15T10:30:00Z", "updated_at": "2024-01-15T10:30:00Z"}]' > data/transactions.json
-./comptes migrate
-./comptes list
-# Vérifier: IDs migrés vers UUID courts
+# Test 15.1: Commande migrate supprimée (plus nécessaire)
+# Tous les nouveaux mouvements utilisent déjà des UUID
 ```
 
 ---
@@ -294,7 +290,7 @@ echo '[{"id": "txn_1234567890", "account": "BANQUE", "amount": -25.50, "descript
 - [ ] Audit trail complet
 - [ ] Relations parent-enfant correctes
 - [ ] Undo en chaîne fonctionne
-- [ ] Migration des IDs fonctionne
+- [x] Migration des IDs fonctionne (commande supprimée, plus nécessaire)
 
 ### ✅ Tests d'intégration (80% requis)
 - [ ] Format CSV compatible Nushell

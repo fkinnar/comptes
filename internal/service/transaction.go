@@ -23,7 +23,7 @@ func NewTransactionService(storage storage.Storage) *TransactionService {
 // AddTransaction adds a new transaction
 func (s *TransactionService) AddTransaction(transaction domain.Transaction) error {
 	// Validate transaction
-	if err := s.validateTransaction(transaction); err != nil {
+	if err := s.ValidateTransaction(transaction); err != nil {
 		return err
 	}
 
@@ -74,8 +74,8 @@ func (s *TransactionService) GetAccountBalance(accountID string) (float64, error
 	return s.storage.GetAccountBalance(accountID)
 }
 
-// validateTransaction validates a transaction
-func (s *TransactionService) validateTransaction(transaction domain.Transaction) error {
+// ValidateTransaction validates a transaction (public for use by batch service)
+func (s *TransactionService) ValidateTransaction(transaction domain.Transaction) error {
 	// Check if account exists
 	accounts, err := s.storage.GetAccounts()
 	if err != nil {
@@ -181,7 +181,7 @@ func (s *TransactionService) EditTransaction(transactionID string, modifications
 	}
 
 	// Validate the new transaction
-	if err := s.validateTransaction(newTransaction); err != nil {
+	if err := s.ValidateTransaction(newTransaction); err != nil {
 		return nil, errors.Wrap(errors.ErrorTypeValidation, "validation_failed", "Validation failed for edited transaction", err)
 	}
 
@@ -270,35 +270,6 @@ func (s *TransactionService) UndoTransaction(transactionID string) error {
 	} else {
 		return errors.InvalidOperation(targetTransaction.ID)
 	}
-}
-
-// MigrateTransactionIDs migrates old transaction IDs to new format
-func (s *TransactionService) MigrateTransactionIDs(generateID func() string) error {
-	transactions, err := s.storage.GetTransactions()
-	if err != nil {
-		return errors.StorageReadFailed("transactions", err)
-	}
-
-	var updated bool
-	for i, txn := range transactions {
-		// Check if ID is not 11 characters (migrate to new 11-char format)
-		if len(txn.ID) != 11 {
-			// Generate new short UUID with 11 characters
-			transactions[i].ID = generateID()
-			updated = true
-		}
-	}
-
-	if !updated {
-		return nil // No transactions need migration
-	}
-
-	// Save updated transactions
-	if err := s.storage.SaveTransactions(transactions); err != nil {
-		return errors.StorageWriteFailed("transactions", err)
-	}
-
-	return nil
 }
 
 // Helper methods

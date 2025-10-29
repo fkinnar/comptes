@@ -20,11 +20,13 @@
 
 ### ✨ Fonctionnalités principales
 
-- **Gestion des transactions** : Ajout, édition, suppression avec audit trail
+- **Gestion des mouvements** : Ajout, édition, suppression avec audit trail
+- **Mode transactionnel** : Groupement de mouvements en batches (begin/commit/rollback)
 - **Interface Git-like** : Messages obligatoires, undo intelligent, historique complet
 - **Formats multiples** : Text, CSV, JSON pour l'intégration avec d'autres outils
+- **Export flexible** : Liste des mouvements, catégories, tags, comptes avec soldes
 - **Architecture extensible** : Prête pour SQLite, REST API, etc.
-- **Tests complets** : 28 tests automatiques avec edge cases
+- **IDs partiels** : Support des préfixes UUID pour simplification
 
 ### 🎯 Objectifs
 
@@ -66,7 +68,7 @@ comptes/
 ├── config/
 │   └── config.yaml          # Configuration des comptes, catégories, tags
 ├── data/
-│   ├── transactions.json     # Transactions financières
+│   ├── movements.json        # Mouvements financiers (anciennement transactions.json)
 │   ├── accounts.json         # Comptes bancaires
 │   ├── categories.json       # Catégories de transactions
 │   └── tags.json            # Tags de transactions
@@ -179,8 +181,17 @@ Crée la structure de fichiers et la configuration par défaut.
 
 #### Ajout de transactions
 ```bash
+# Format JSON
 ./comptes add '{"account": "BANQUE", "amount": -25.50, "description": "Courses", "categories": ["ALM"]}'
 ./comptes add '{"account": "BANQUE", "amount": 1500, "description": "Salaire", "categories": ["SLR"], "date": "today"}'
+
+# Format Flags (plus simple pour l'usage quotidien)
+./comptes add -a BANQUE -m -25.50 -d "Courses" -c ALM -t REC
+./comptes add --account BANQUE --amount 1500 --description "Salaire" --categories SLR --date today
+
+# Forcer l'ajout direct même si une batch est en cours
+./comptes add '{"account": "BANQUE", "amount": -25.50, "description": "Urgent"}' --immediate
+./comptes add -a BANQUE -m -25.50 -d "Urgent" -i
 ```
 
 #### Liste des transactions
@@ -213,9 +224,39 @@ Crée la structure de fichiers et la configuration par défaut.
 ./comptes balance
 ```
 
-#### Migration des IDs
+#### Mode transactionnel
 ```bash
-./comptes migrate  # Convertit les anciens IDs vers UUID courts
+# Créer une batch
+./comptes begin "Dépenses du mois"
+
+# Ajouter des mouvements dans la batch
+./comptes add '{"account":"BANQUE","amount":-25.50,"description":"Courses"}'
+./comptes add '{"account":"BANQUE","amount":-10.00,"description":"Pain"}'
+
+# Commiter tous les mouvements
+./comptes commit
+
+# Ou rollback si erreur
+./comptes rollback
+```
+
+#### Liste des données
+```bash
+# Lister les mouvements
+./comptes list
+
+# Lister les catégories
+./comptes list --categories
+
+# Lister les tags
+./comptes list --tags
+
+# Lister les comptes avec soldes
+./comptes list --accounts
+
+# Formats de sortie
+./comptes list --format csv
+./comptes list --format json
 ```
 
 ### Options avancées
@@ -488,17 +529,57 @@ go mod download                 # Téléchargement
 
 ## 🚀 Roadmap
 
-### MVP Complet ✅
+### MVP Complet (v1.0) ✅
 
+#### ✅ Fonctionnalités implémentées
 - ✅ Architecture en couches
 - ✅ CLI de base (init, add, list, edit, delete, undo, balance)
+- ✅ **Mode transactionnel** (begin, commit, rollback) avec batch courante
 - ✅ Interface Git-like avec audit trail
 - ✅ Formats multiples (text, csv, json)
+- ✅ **Liste flexible** : mouvements, catégories, tags, comptes avec soldes
+- ✅ **IDs partiels** : support des préfixes UUID
 - ✅ Tests complets (28 tests automatiques)
-- ✅ Configuration par défaut
+- ✅ Configuration par défaut enrichie
 - ✅ Pre-commit hooks avec validation
+- ✅ **Migration automatique** : transactions.json → movements.json
 
-### Fonctionnalités avancées (v2)
+### Fonctionnalités en cours / à venir (v1.1+)
+
+#### 🔄 Mode transactionnel amélioré
+- ⏳ **Contexte partagé** : `comptes account BANQUE` → `comptes category ALM` pour simplifier les commandes `add`
+- ⏳ **Liste des batches** : commande pour voir les batches pending
+- ⏳ **Affichage du contenu** : voir les mouvements d'une batch avant commit
+
+#### 💼 Gestion des données de base
+- ⏳ **Gestion des comptes** : CRUD via CLI (actuellement uniquement dans config)
+- ⏳ **Gestion des catégories** : CRUD via CLI (actuellement uniquement dans config)
+- ⏳ **Gestion des tags** : CRUD via CLI (actuellement uniquement dans config)
+- ✅ Consultation déjà disponible via `list --categories`, `list --tags`, `list --accounts`
+
+#### 📊 Filtres et recherche avancés
+- ⏳ **Filtres par date** : `--from`, `--to`, `--month`, `--year`
+- ⏳ **Filtres par montant** : `--min-amount`, `--max-amount`
+- ⏳ **Filtres par compte** : `--account BANQUE`
+- ⏳ **Filtres par catégorie** : `--category ALM`
+- ⏳ **Recherche** : `comptes search "description"`
+
+#### 📅 Gestion des dates avancées
+- ⏳ **Formats étendus** : `last week`, `next month`, etc.
+- ⏳ **Calculs de dates** : `+7 days`, `-1 month`
+- ✅ Formats de base déjà supportés : `today`, `yesterday`, `tomorrow`, `2024-01-15`
+
+#### 📤 Import/Export
+- ⏳ **Import CSV** : `comptes import --file bank_statement.csv`
+- ✅ Export CSV/JSON déjà disponible via `list --format csv/json`
+- ⏳ **Export avec filtres** : `--from`, `--to`, `--account`, etc.
+
+#### 💰 Fonctionnalités métier avancées
+- ⏳ **Virements entre comptes** : Support des transferts multi-comptes
+- ⏳ **Budgets et prévisions** : Gestion des budgets mensuels
+- ⏳ **Économies** : Suivi des objectifs d'épargne
+- ⏳ **Rapports** : `comptes report --month 2024-01`
+- ⏳ **Analytics** : Tendances, comparaisons, etc.
 
 #### 🔄 Go routines & asynchrone
 - **Analytics** : Calculs en parallèle sur plusieurs comptes
@@ -576,4 +657,4 @@ go mod download                 # Téléchargement
 
 ---
 
-*Documentation mise à jour : 28 octobre 2025*
+*Documentation mise à jour : 29 octobre 2025*

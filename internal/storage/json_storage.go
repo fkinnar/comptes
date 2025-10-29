@@ -71,15 +71,38 @@ func (s *JSONStorage) GetAccountBalance(accountID string) (float64, error) {
 	return balance, nil
 }
 
-// GetTransactions reads transactions from JSON file
+// GetTransactions reads transactions (movements) from JSON file
 func (s *JSONStorage) GetTransactions() ([]domain.Transaction, error) {
 	var transactions []domain.Transaction
-	return transactions, s.readJSONFile("transactions.json", &transactions)
+	// Try movements.json first (new format), fallback to transactions.json for migration
+	movementsPath := filepath.Join(s.dataDir, "movements.json")
+	transactionsPath := filepath.Join(s.dataDir, "transactions.json")
+
+	// Check if movements.json exists
+	if _, err := os.Stat(movementsPath); err == nil {
+		return transactions, s.readJSONFile("movements.json", &transactions)
+	}
+
+	// Check if old transactions.json exists (migration)
+	if _, err := os.Stat(transactionsPath); err == nil {
+		err := s.readJSONFile("transactions.json", &transactions)
+		if err != nil {
+			return transactions, err
+		}
+		// Migrate: rename file to movements.json
+		if err := os.Rename(transactionsPath, movementsPath); err != nil {
+			return transactions, fmt.Errorf("failed to migrate transactions.json to movements.json: %w", err)
+		}
+		return transactions, nil
+	}
+
+	// Neither file exists, return empty
+	return transactions, nil
 }
 
-// SaveTransactions saves transactions to JSON file
+// SaveTransactions saves transactions (movements) to JSON file
 func (s *JSONStorage) SaveTransactions(transactions []domain.Transaction) error {
-	return s.writeJSONFile("transactions.json", transactions)
+	return s.writeJSONFile("movements.json", transactions)
 }
 
 // GetCategories reads categories from JSON file
@@ -102,6 +125,39 @@ func (s *JSONStorage) GetTags() ([]domain.Tag, error) {
 // SaveTags saves tags to JSON file
 func (s *JSONStorage) SaveTags(tags []domain.Tag) error {
 	return s.writeJSONFile("tags.json", tags)
+}
+
+// GetPendingBatches reads pending transaction batches from JSON file
+func (s *JSONStorage) GetPendingBatches() ([]domain.TransactionBatch, error) {
+	var batches []domain.TransactionBatch
+	return batches, s.readJSONFile("pending_transactions.json", &batches)
+}
+
+// SavePendingBatches saves pending transaction batches to JSON file
+func (s *JSONStorage) SavePendingBatches(batches []domain.TransactionBatch) error {
+	return s.writeJSONFile("pending_transactions.json", batches)
+}
+
+// GetCommittedBatches reads committed transaction batches from JSON file
+func (s *JSONStorage) GetCommittedBatches() ([]domain.TransactionBatch, error) {
+	var batches []domain.TransactionBatch
+	return batches, s.readJSONFile("committed_transactions.json", &batches)
+}
+
+// SaveCommittedBatches saves committed transaction batches to JSON file
+func (s *JSONStorage) SaveCommittedBatches(batches []domain.TransactionBatch) error {
+	return s.writeJSONFile("committed_transactions.json", batches)
+}
+
+// GetRolledBackBatches reads rolled back transaction batches from JSON file
+func (s *JSONStorage) GetRolledBackBatches() ([]domain.TransactionBatch, error) {
+	var batches []domain.TransactionBatch
+	return batches, s.readJSONFile("rolled_back_transactions.json", &batches)
+}
+
+// SaveRolledBackBatches saves rolled back transaction batches to JSON file
+func (s *JSONStorage) SaveRolledBackBatches(batches []domain.TransactionBatch) error {
+	return s.writeJSONFile("rolled_back_transactions.json", batches)
 }
 
 // Helper methods

@@ -46,9 +46,9 @@ func TestJSONStorage_SaveAndLoadTransactions(t *testing.T) {
 	}
 
 	// Verify file was created
-	transactionsFile := filepath.Join(tempDir, "transactions.json")
-	if _, err := os.Stat(transactionsFile); os.IsNotExist(err) {
-		t.Error("Expected transactions.json file to be created")
+	movementsFile := filepath.Join(tempDir, "movements.json")
+	if _, err := os.Stat(movementsFile); os.IsNotExist(err) {
+		t.Error("Expected movements.json file to be created")
 	}
 
 	// Test loading transactions
@@ -162,15 +162,274 @@ func TestJSONStorage_InvalidJSON(t *testing.T) {
 	storage := NewJSONStorage(tempDir)
 
 	// Create invalid JSON file
-	transactionsFile := filepath.Join(tempDir, "transactions.json")
+	movementsFile := filepath.Join(tempDir, "movements.json")
 	invalidJSON := `{"invalid": json, missing quotes}`
-	err := os.WriteFile(transactionsFile, []byte(invalidJSON), 0644)
+	err := os.WriteFile(movementsFile, []byte(invalidJSON), 0644)
 	if err != nil {
 		t.Fatalf("Failed to create invalid JSON file: %v", err)
 	}
 
 	// Test loading invalid JSON
 	_, err = storage.GetTransactions()
+	if err == nil {
+		t.Error("Expected error loading invalid JSON, got nil")
+	}
+}
+
+func TestJSONStorage_SaveAndLoadPendingBatches(t *testing.T) {
+	// Create temporary directory
+	tempDir := t.TempDir()
+	storage := NewJSONStorage(tempDir)
+
+	// Test data
+	batches := []domain.TransactionBatch{
+		{
+			ID:          "batch1",
+			Description: "Test batch 1",
+			CreatedAt:   time.Now(),
+			Transactions: []domain.Transaction{
+				{
+					ID:          "txn1",
+					Account:     "account1",
+					Amount:      -50.0,
+					Description: "Transaction 1",
+					IsActive:    true,
+					CreatedAt:   time.Now(),
+					UpdatedAt:   time.Now(),
+				},
+			},
+		},
+		{
+			ID:           "batch2",
+			Description:  "Test batch 2",
+			CreatedAt:    time.Now(),
+			Transactions: []domain.Transaction{},
+		},
+	}
+
+	// Test saving batches
+	err := storage.SavePendingBatches(batches)
+	if err != nil {
+		t.Errorf("Expected no error saving pending batches, got %v", err)
+	}
+
+	// Verify file was created
+	pendingFile := filepath.Join(tempDir, "pending_transactions.json")
+	if _, err := os.Stat(pendingFile); os.IsNotExist(err) {
+		t.Error("Expected pending_transactions.json file to be created")
+	}
+
+	// Test loading batches
+	loadedBatches, err := storage.GetPendingBatches()
+	if err != nil {
+		t.Errorf("Expected no error loading pending batches, got %v", err)
+	}
+
+	// Verify data integrity
+	if len(loadedBatches) != 2 {
+		t.Errorf("Expected 2 batches, got %d", len(loadedBatches))
+	}
+
+	if loadedBatches[0].ID != "batch1" {
+		t.Errorf("Expected first batch ID 'batch1', got '%s'", loadedBatches[0].ID)
+	}
+
+	if len(loadedBatches[0].Transactions) != 1 {
+		t.Errorf("Expected 1 transaction in first batch, got %d", len(loadedBatches[0].Transactions))
+	}
+
+	if loadedBatches[1].Description != "Test batch 2" {
+		t.Errorf("Expected second batch description 'Test batch 2', got '%s'", loadedBatches[1].Description)
+	}
+}
+
+func TestJSONStorage_SaveAndLoadCommittedBatches(t *testing.T) {
+	// Create temporary directory
+	tempDir := t.TempDir()
+	storage := NewJSONStorage(tempDir)
+
+	now := time.Now()
+	batches := []domain.TransactionBatch{
+		{
+			ID:          "batch1",
+			Description: "Committed batch",
+			CreatedAt:   now.Add(-time.Hour),
+			CommittedAt: &now,
+			Transactions: []domain.Transaction{
+				{
+					ID:          "txn1",
+					Account:     "account1",
+					Amount:      -50.0,
+					Description: "Transaction 1",
+					IsActive:    true,
+					CreatedAt:   now,
+					UpdatedAt:   now,
+				},
+			},
+		},
+	}
+
+	// Test saving committed batches
+	err := storage.SaveCommittedBatches(batches)
+	if err != nil {
+		t.Errorf("Expected no error saving committed batches, got %v", err)
+	}
+
+	// Verify file was created
+	committedFile := filepath.Join(tempDir, "committed_transactions.json")
+	if _, err := os.Stat(committedFile); os.IsNotExist(err) {
+		t.Error("Expected committed_transactions.json file to be created")
+	}
+
+	// Test loading committed batches
+	loadedBatches, err := storage.GetCommittedBatches()
+	if err != nil {
+		t.Errorf("Expected no error loading committed batches, got %v", err)
+	}
+
+	if len(loadedBatches) != 1 {
+		t.Errorf("Expected 1 committed batch, got %d", len(loadedBatches))
+	}
+
+	if loadedBatches[0].ID != "batch1" {
+		t.Errorf("Expected batch ID 'batch1', got '%s'", loadedBatches[0].ID)
+	}
+
+	if loadedBatches[0].CommittedAt == nil {
+		t.Error("Expected CommittedAt timestamp to be set")
+	}
+}
+
+func TestJSONStorage_SaveAndLoadRolledBackBatches(t *testing.T) {
+	// Create temporary directory
+	tempDir := t.TempDir()
+	storage := NewJSONStorage(tempDir)
+
+	now := time.Now()
+	batches := []domain.TransactionBatch{
+		{
+			ID:           "batch1",
+			Description:  "Rolled back batch",
+			CreatedAt:    now.Add(-time.Hour),
+			RolledBackAt: &now,
+			Transactions: []domain.Transaction{
+				{
+					ID:          "txn1",
+					Account:     "account1",
+					Amount:      -50.0,
+					Description: "Transaction 1",
+					IsActive:    true,
+					CreatedAt:   now,
+					UpdatedAt:   now,
+				},
+			},
+		},
+	}
+
+	// Test saving rolled back batches
+	err := storage.SaveRolledBackBatches(batches)
+	if err != nil {
+		t.Errorf("Expected no error saving rolled back batches, got %v", err)
+	}
+
+	// Verify file was created
+	rolledBackFile := filepath.Join(tempDir, "rolled_back_transactions.json")
+	if _, err := os.Stat(rolledBackFile); os.IsNotExist(err) {
+		t.Error("Expected rolled_back_transactions.json file to be created")
+	}
+
+	// Test loading rolled back batches
+	loadedBatches, err := storage.GetRolledBackBatches()
+	if err != nil {
+		t.Errorf("Expected no error loading rolled back batches, got %v", err)
+	}
+
+	if len(loadedBatches) != 1 {
+		t.Errorf("Expected 1 rolled back batch, got %d", len(loadedBatches))
+	}
+
+	if loadedBatches[0].ID != "batch1" {
+		t.Errorf("Expected batch ID 'batch1', got '%s'", loadedBatches[0].ID)
+	}
+
+	if loadedBatches[0].RolledBackAt == nil {
+		t.Error("Expected RolledBackAt timestamp to be set")
+	}
+}
+
+func TestJSONStorage_BatchFiles_Empty(t *testing.T) {
+	// Create temporary directory
+	tempDir := t.TempDir()
+	storage := NewJSONStorage(tempDir)
+
+	// Test loading empty batch files
+	pendingBatches, err := storage.GetPendingBatches()
+	if err != nil {
+		t.Errorf("Expected no error loading empty pending batches, got %v", err)
+	}
+
+	if len(pendingBatches) != 0 {
+		t.Errorf("Expected empty pending batches list, got %d batches", len(pendingBatches))
+	}
+
+	committedBatches, err := storage.GetCommittedBatches()
+	if err != nil {
+		t.Errorf("Expected no error loading empty committed batches, got %v", err)
+	}
+
+	if len(committedBatches) != 0 {
+		t.Errorf("Expected empty committed batches list, got %d batches", len(committedBatches))
+	}
+
+	rolledBackBatches, err := storage.GetRolledBackBatches()
+	if err != nil {
+		t.Errorf("Expected no error loading empty rolled back batches, got %v", err)
+	}
+
+	if len(rolledBackBatches) != 0 {
+		t.Errorf("Expected empty rolled back batches list, got %d batches", len(rolledBackBatches))
+	}
+}
+
+func TestJSONStorage_BatchFiles_InvalidJSON(t *testing.T) {
+	// Create temporary directory
+	tempDir := t.TempDir()
+	storage := NewJSONStorage(tempDir)
+
+	// Create invalid JSON file for pending batches
+	pendingFile := filepath.Join(tempDir, "pending_transactions.json")
+	invalidJSON := `{"invalid": json, missing quotes}`
+	err := os.WriteFile(pendingFile, []byte(invalidJSON), 0644)
+	if err != nil {
+		t.Fatalf("Failed to create invalid JSON file: %v", err)
+	}
+
+	// Test loading invalid JSON
+	_, err = storage.GetPendingBatches()
+	if err == nil {
+		t.Error("Expected error loading invalid JSON, got nil")
+	}
+
+	// Test invalid JSON for committed batches
+	committedFile := filepath.Join(tempDir, "committed_transactions.json")
+	err = os.WriteFile(committedFile, []byte(invalidJSON), 0644)
+	if err != nil {
+		t.Fatalf("Failed to create invalid JSON file: %v", err)
+	}
+
+	_, err = storage.GetCommittedBatches()
+	if err == nil {
+		t.Error("Expected error loading invalid JSON, got nil")
+	}
+
+	// Test invalid JSON for rolled back batches
+	rolledBackFile := filepath.Join(tempDir, "rolled_back_transactions.json")
+	err = os.WriteFile(rolledBackFile, []byte(invalidJSON), 0644)
+	if err != nil {
+		t.Fatalf("Failed to create invalid JSON file: %v", err)
+	}
+
+	_, err = storage.GetRolledBackBatches()
 	if err == nil {
 		t.Error("Expected error loading invalid JSON, got nil")
 	}

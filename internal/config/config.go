@@ -30,15 +30,33 @@ func CreateDefaultConfig() *Config {
 				IsActive:       true,
 				CreatedAt:      time.Now(),
 			},
+			{
+				ID:             "LIVRET",
+				Name:           "Compte Épargne",
+				Type:           "savings",
+				Currency:       "EUR",
+				InitialBalance: 5000.00,
+				IsActive:       true,
+				CreatedAt:      time.Now(),
+			},
 		},
 		Categories: []domain.Category{
 			{Code: "ALM", Name: "Alimentation", Description: "Courses et repas"},
 			{Code: "SLR", Name: "Salaire", Description: "Revenus professionnels"},
 			{Code: "LGT", Name: "Logement", Description: "Loyer, charges, etc."},
+			{Code: "TRN", Name: "Transport", Description: "Carburant, transports en commun"},
+			{Code: "HLT", Name: "Santé", Description: "Médecin, pharmacie, mutuelle"},
+			{Code: "LOI", Name: "Loisirs", Description: "Sorties, divertissements"},
+			{Code: "VET", Name: "Vêtements", Description: "Habillement"},
+			{Code: "TTL", Name: "Télécom", Description: "Téléphone, internet"},
+			{Code: "ASS", Name: "Assurance", Description: "Assurances diverses"},
+			{Code: "EDU", Name: "Éducation", Description: "Formation, livres"},
 		},
 		Tags: []domain.Tag{
 			{Code: "URG", Name: "Urgent", Description: "Transaction urgente"},
 			{Code: "REC", Name: "Récurrent", Description: "Transaction récurrente"},
+			{Code: "IMP", Name: "Important", Description: "Transaction importante"},
+			{Code: "PRO", Name: "Professionnel", Description: "Transaction professionnelle"},
 		},
 	}
 }

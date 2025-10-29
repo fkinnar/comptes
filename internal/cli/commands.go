@@ -11,7 +11,9 @@ import (
 // CLI represents the command line interface
 type CLI struct {
 	transactionService *service.TransactionService
+	batchService       *service.TransactionBatchService
 	storage            storage.Storage
+	dataDir            string // Data directory path
 }
 
 // NewCLI creates a new CLI instance
@@ -35,10 +37,13 @@ func NewCLI() (*CLI, error) {
 	// Initialize storage and services
 	storage := storage.NewJSONStorage(dataDir)
 	transactionService := service.NewTransactionService(storage)
+	batchService := service.NewTransactionBatchService(storage, transactionService)
 
 	return &CLI{
 		transactionService: transactionService,
+		batchService:       batchService,
 		storage:            storage,
+		dataDir:            dataDir,
 	}, nil
 }
 
@@ -66,8 +71,23 @@ func (c *CLI) Execute(args []string) error {
 		return c.handleUndo(args)
 	case "balance":
 		return c.handleBalance()
-	case "migrate":
-		return c.handleMigrate()
+	case "begin":
+		return c.handleBegin(args)
+	case "commit":
+		return c.handleCommit(args)
+	case "rollback":
+		return c.handleRollback(args)
+	case "account":
+		return c.handleAccount(args)
+	case "category":
+		return c.handleCategory(args)
+	case "tags":
+		return c.handleTags(args)
+	case "context":
+		if len(args) >= 3 && args[2] == "clear" {
+			return c.handleContextClear()
+		}
+		return c.handleContextShow()
 	default:
 		ShowHelp("")
 		return errors.InvalidCommand(command)

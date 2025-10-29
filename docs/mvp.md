@@ -178,7 +178,7 @@ comptes/                    # Répertoire de l'exécutable
 ├── comptes                 # Exécutable
 ├── data/                   # Données (à côté de l'exécutable)
 │   ├── accounts.json
-│   ├── transactions.json
+│   ├── movements.json        # Mouvements financiers (anciennement transactions.json)
 │   ├── categories.json
 │   ├── tags.json
 │   └── budgets.json

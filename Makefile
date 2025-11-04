@@ -7,9 +7,30 @@ BUILD_DIR=.
 GO_FLAGS=-trimpath
 LDFLAGS=-s -w
 
-# Détection de l'OS
-UNAME_S := $(shell uname -s)
-IS_MACOS := $(shell uname -s | grep -q Darwin && echo "yes" || echo "no")
+# Détection de l'OS (compatible Windows/Unix)
+# Vérifie si on est sur Windows en testant COMSPEC ou OS
+ifdef OS
+    ifeq ($(OS),Windows_NT)
+        IS_WINDOWS := yes
+        IS_MACOS := no
+    else
+        IS_WINDOWS := no
+        IS_MACOS := $(shell uname -s 2>/dev/null | grep -q Darwin && echo "yes" || echo "no")
+    endif
+else ifdef COMSPEC
+    IS_WINDOWS := yes
+    IS_MACOS := no
+else
+    # Unix/Linux/macOS - teste uname
+    UNAME_S := $(shell uname -s 2>/dev/null)
+    ifeq ($(UNAME_S),Darwin)
+        IS_WINDOWS := no
+        IS_MACOS := yes
+    else
+        IS_WINDOWS := no
+        IS_MACOS := no
+    endif
+endif
 
 # Détection de Go (priorité à Homebrew sur macOS)
 GO_CMD := go
@@ -25,54 +46,59 @@ help: ## Affiche l'aide
 
 build: ## Compile le binaire
 	@echo "Compilation de $(BINARY_NAME)..."
-	@if [ "$(IS_MACOS)" = "yes" ]; then \
-		GO_VERSION=$$($(GO_CMD) version | awk '{print $$3}' | sed 's/go//'); \
-		GO_MAJOR=$$(echo $$GO_VERSION | cut -d. -f1); \
-		GO_MINOR=$$(echo $$GO_VERSION | cut -d. -f2); \
-		if [ "$$GO_MAJOR" -lt 1 ] || ([ "$$GO_MAJOR" -eq 1 ] && [ "$$GO_MINOR" -lt 24 ]); then \
-			echo "⚠️  ATTENTION: Go $$GO_VERSION détecté. macOS 26+ nécessite Go 1.24+"; \
-			echo "   Lancez './update-go.sh' pour mettre à jour Go"; \
-			echo "   OU consultez UPDATE_GO.md pour plus d'informations"; \
-			echo ""; \
-			echo "   Tentative de compilation (peut échouer avec 'missing LC_UUID'):"; \
-		fi; \
+ifeq ($(IS_MACOS),yes)
+	@GO_VERSION=$$($(GO_CMD) version | awk '{print $$3}' | sed 's/go//'); \
+	GO_MAJOR=$$(echo $$GO_VERSION | cut -d. -f1); \
+	GO_MINOR=$$(echo $$GO_VERSION | cut -d. -f2); \
+	if [ "$$GO_MAJOR" -lt 1 ] || ([ "$$GO_MAJOR" -eq 1 ] && [ "$$GO_MINOR" -lt 24 ]); then \
+		echo "⚠️  ATTENTION: Go $$GO_VERSION détecté. macOS 26+ nécessite Go 1.24+"; \
+		echo "   Lancez './update-go.sh' pour mettre à jour Go"; \
+		echo "   OU consultez UPDATE_GO.md pour plus d'informations"; \
+		echo ""; \
+		echo "   Tentative de compilation (peut échouer avec 'missing LC_UUID'):"; \
 	fi
-	@$(GO_CMD) build $(GO_FLAGS) -ldflags="$(LDFLAGS)" -o $(BUILD_DIR)/$(BINARY_NAME) $(MAIN_PACKAGE)
-	@if [ "$(IS_MACOS)" = "yes" ]; then \
-		echo "Signature du binaire pour macOS..."; \
-		codesign --remove-signature $(BUILD_DIR)/$(BINARY_NAME) 2>/dev/null || true; \
-		codesign --sign - $(BUILD_DIR)/$(BINARY_NAME) || true; \
-	fi
-	@echo "✓ Compilation réussie: $(BUILD_DIR)/$(BINARY_NAME)"
+endif
+	@$(GO_CMD) build $(GO_FLAGS) -ldflags="$(LDFLAGS)" -o $(BUILD_DIR)/$(BINARY_NAME)$(if $(filter yes,$(IS_WINDOWS)),.exe,) $(MAIN_PACKAGE)
+ifeq ($(IS_MACOS),yes)
+	@echo "Signature du binaire pour macOS..."; \
+	codesign --remove-signature $(BUILD_DIR)/$(BINARY_NAME) 2>/dev/null || true; \
+	codesign --sign - $(BUILD_DIR)/$(BINARY_NAME) || true
+endif
+	@echo "✓ Compilation réussie: $(BUILD_DIR)/$(BINARY_NAME)$(if $(filter yes,$(IS_WINDOWS)),.exe,)"
 
 build-with-uuid: ## Compile avec LC_UUID (nécessite Go 1.24+ ou uuidgen)
 	@echo "Compilation de $(BINARY_NAME) avec LC_UUID..."
-	@$(GO_CMD) build $(GO_FLAGS) -ldflags="$(LDFLAGS)" -o $(BUILD_DIR)/$(BINARY_NAME) $(MAIN_PACKAGE)
-	@if [ "$(IS_MACOS)" = "yes" ]; then \
-		if command -v uuidgen >/dev/null 2>&1; then \
-			UUID=$$(uuidgen | tr '[:upper:]' '[:lower:]'); \
-			echo "Ajout de LC_UUID (UUID: $$UUID)..."; \
-			echo "Note: Cette méthode nécessite des outils supplémentaires. Mettez à jour Go vers 1.24+ pour une solution permanente."; \
-		fi; \
-		echo "Signature du binaire pour macOS..."; \
-		codesign --remove-signature $(BUILD_DIR)/$(BINARY_NAME) 2>/dev/null || true; \
-		codesign --sign - $(BUILD_DIR)/$(BINARY_NAME) || true; \
-	fi
-	@echo "✓ Compilation réussie: $(BUILD_DIR)/$(BINARY_NAME)"
+	@$(GO_CMD) build $(GO_FLAGS) -ldflags="$(LDFLAGS)" -o $(BUILD_DIR)/$(BINARY_NAME)$(if $(filter yes,$(IS_WINDOWS)),.exe,) $(MAIN_PACKAGE)
+ifeq ($(IS_MACOS),yes)
+	@if command -v uuidgen >/dev/null 2>&1; then \
+		UUID=$$(uuidgen | tr '[:upper:]' '[:lower:]'); \
+		echo "Ajout de LC_UUID (UUID: $$UUID)..."; \
+		echo "Note: Cette méthode nécessite des outils supplémentaires. Mettez à jour Go vers 1.24+ pour une solution permanente."; \
+	fi; \
+	echo "Signature du binaire pour macOS..."; \
+	codesign --remove-signature $(BUILD_DIR)/$(BINARY_NAME) 2>/dev/null || true; \
+	codesign --sign - $(BUILD_DIR)/$(BINARY_NAME) || true
+endif
+	@echo "✓ Compilation réussie: $(BUILD_DIR)/$(BINARY_NAME)$(if $(filter yes,$(IS_WINDOWS)),.exe,)"
 
 build-debug: ## Compile avec informations de debug
 	@echo "Compilation en mode debug..."
-	@$(GO_CMD) build $(GO_FLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) $(MAIN_PACKAGE)
-	@if [ "$(IS_MACOS)" = "yes" ]; then \
-		echo "Signature du binaire pour macOS..."; \
-		codesign --remove-signature $(BUILD_DIR)/$(BINARY_NAME) 2>/dev/null || true; \
-		codesign --sign - $(BUILD_DIR)/$(BINARY_NAME) || true; \
-	fi
-	@echo "✓ Compilation réussie: $(BUILD_DIR)/$(BINARY_NAME)"
+	@$(GO_CMD) build $(GO_FLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)$(if $(filter yes,$(IS_WINDOWS)),.exe,) $(MAIN_PACKAGE)
+ifeq ($(IS_MACOS),yes)
+	@echo "Signature du binaire pour macOS..."; \
+	codesign --remove-signature $(BUILD_DIR)/$(BINARY_NAME) 2>/dev/null || true; \
+	codesign --sign - $(BUILD_DIR)/$(BINARY_NAME) || true
+endif
+	@echo "✓ Compilation réussie: $(BUILD_DIR)/$(BINARY_NAME)$(if $(filter yes,$(IS_WINDOWS)),.exe,)"
 
 clean: ## Nettoie les fichiers générés
 	@echo "Nettoyage..."
+ifeq ($(IS_WINDOWS),yes)
+	@if exist $(BUILD_DIR)\$(BINARY_NAME).exe del /q $(BUILD_DIR)\$(BINARY_NAME).exe
+	@if exist $(BUILD_DIR)\$(BINARY_NAME) del /q $(BUILD_DIR)\$(BINARY_NAME)
+else
 	@rm -f $(BUILD_DIR)/$(BINARY_NAME)
+endif
 	@$(GO_CMD) clean -cache -testcache
 	@echo "✓ Nettoyage terminé"
 
@@ -87,7 +113,11 @@ test-coverage: ## Lance les tests avec couverture
 	@echo "✓ Rapport de couverture généré: coverage.html"
 
 run: build ## Compile et exécute (utilise les arguments après --)
+ifeq ($(IS_WINDOWS),yes)
+	@$(BUILD_DIR)\$(BINARY_NAME).exe $(ARGS)
+else
 	@./$(BINARY_NAME) $(ARGS)
+endif
 
 install: build ## Installe le binaire dans /usr/local/bin (nécessite sudo)
 	@echo "Installation de $(BINARY_NAME) dans /usr/local/bin..."
@@ -117,10 +147,7 @@ mod-verify: ## Vérifie les dépendances Go
 	@echo "✓ Dépendances vérifiées"
 
 sign: ## Signe le binaire (macOS uniquement)
-	@if [ "$(IS_MACOS)" != "yes" ]; then \
-		echo "Cette commande est uniquement disponible sur macOS"; \
-		exit 1; \
-	fi
+ifeq ($(IS_MACOS),yes)
 	@if [ ! -f $(BUILD_DIR)/$(BINARY_NAME) ]; then \
 		echo "Erreur: $(BINARY_NAME) n'existe pas. Lancez 'make build' d'abord."; \
 		exit 1; \
@@ -129,7 +156,10 @@ sign: ## Signe le binaire (macOS uniquement)
 	@codesign --remove-signature $(BUILD_DIR)/$(BINARY_NAME) 2>/dev/null || true
 	@codesign --sign - $(BUILD_DIR)/$(BINARY_NAME)
 	@echo "✓ Signature réussie"
+else
+	@echo "Cette commande est uniquement disponible sur macOS"
+	@exit 1
+endif
 
 # Cible par défaut
 .DEFAULT_GOAL := build
-
